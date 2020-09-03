@@ -1,0 +1,19 @@
+# see https://github.com/typescript-eslint/typescript-eslint/blob/master/docs/getting-started/linting/README.md
+
+# don't ever lint node_modules
+node_modules
+
+# don't lint build output (make sure it's set to your correct build folder name)
+dist
+
+# don't lint nyc coverage output
+coverage
+
+# don't lint tmp folder
+tmp
+
+# don't lint tmp folder
+migrations
+
+# don't lint tmp folder
+seeds

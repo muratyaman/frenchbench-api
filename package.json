@@ -1,0 +1,71 @@
+{
+  "name": "frenchbench-api",
+  "version": "1.0.0",
+  "description": "frenchbench api",
+  "main": "dist/index.js",
+  "scripts": {
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
+    "build:ts": "tsc",
+    "build": "npm run clean && npm run build:ts",
+    "lint": "eslint ./src",
+    "start:dev": "node ./src/index.js",
+    "start": "node ./dist/index.js",
+    "db:upgrade": "knex migrate:latest --env production --esm",
+    "db:upgrade:staging": "knex migrate:latest --env staging --esm",
+    "db:upgrade:dev": "knex migrate:latest --esm",
+    "db:upgrade:next": "knex migrate:up --env production --esm",
+    "db:upgrade:next:staging": "knex migrate:up --env staging --esm",
+    "db:upgrade:next:dev": "knex migrate:up --esm",
+    "db:rollback": "knex migrate:rollback --all --env production --esm",
+    "db:rollback:staging": "knex migrate:rollback --all --env staging --esm",
+    "db:rollback:dev": "knex migrate:rollback --all --esm",
+    "db:rollback:last": "knex migrate:down --env production --esm",
+    "db:rollback:last:staging": "knex migrate:down --env staging --esm",
+    "db:rollback:last:dev": "knex migrate:down --esm",
+    "db:seed:dev": "knex seed:run --esm",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Haci Murat Yaman<haci@muratyaman.co.uk>",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.20.0",
+    "bcrypt": "^5.0.0",
+    "cors": "^2.8.5",
+    "dataloader": "^2.0.0",
+    "date-fns": "^2.16.1",
+    "dotenv": "^8.2.0",
+    "express": "^4.17.1",
+    "express-graphql": "^0.11.0",
+    "express-session": "^1.17.1",
+    "frenchbench-common": "^1.0.0",
+    "graphql": "^15.3.0",
+    "jsonwebtoken": "^8.5.1",
+    "knex": "^0.21.5",
+    "morgan": "^1.10.0",
+    "pg": "^8.3.3",
+    "response-time": "^2.3.2",
+    "sqlite3": "^5.0.0",
+    "uuid": "^8.3.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.8",
+    "@types/node": "^14.6.3",
+    "@typescript-eslint/eslint-plugin": "^4.0.1",
+    "@typescript-eslint/parser": "^4.0.1",
+    "eslint": "^7.8.1",
+    "faker": "^5.1.0",
+    "jest": "^26.4.2",
+    "supertest": "^4.0.2",
+    "ts-node": "^9.0.0",
+    "typescript": "^4.0.2"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "coveragePathIgnorePatterns": [
+      "/node_modules/",
+      "/migrations/",
+      "/seeds/"
+    ],
+    "globalSetup": "./jestSetup.js"
+  }
+}
