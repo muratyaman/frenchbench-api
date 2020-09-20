@@ -7,33 +7,29 @@ export function extendDb(db) {
     return '$' + idx;
   };
 
-  const query = async (text, values = []) => {
+  const query = async (text, values = [], name = null) => {
     let result, error;
     try {
-      result = await db.query(text, values);
+      if (name) {
+        result = await db.query({ name, text, values });
+      } else {
+        result = await db.query(text, values);
+      }
     } catch (err) {
-      error = err;
-    }
-    return { result, error };
-  };
-
-  const queryPrepared = async ({ name, text, values }) => {
-    let result, error;
-    try {
-      result = await db.query({ name, text, values });
-    } catch (err) {
+      console.error('query text', text);
+      console.error('query error', err);
       error = err;
     }
     return { result, error };
   };
 
   const findOne = async (table, field, value) => {
-    const { result, error } = await db.queryPrepared({
-      name: table + '-find-one-by-' + field,
-      text: `SELECT * FROM ${table} WHERE ${field} = ` + placeHolder(1),
-      values: [ value ],
-    });
-    return { result, error, row: result.rows[0] || null };
+    const { result, error } = await query(
+      `SELECT * FROM ${table} WHERE ${field} = ` + placeHolder(1),
+      [ value ],
+      table + '-find-one-by-' + field,
+    );
+    return { result, error, row: result && result.rows && result.rows[0] ? result.rows[0] : null };
   };
 
   const insertOne = async(tableName, row) => {
@@ -81,7 +77,6 @@ export function extendDb(db) {
 
   return {
     query,
-    queryPrepared,
     findOne,
     insertOne,
     updateOne,

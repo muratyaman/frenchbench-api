@@ -1,8 +1,8 @@
-export function health({ db, router }) {
+export function health({ config, db, router }) {
 
   router.get('/', async (req, res) => {
-    const result = await db.query('SELECT NOW() AS ts');
-    res.json({ data: result.rows[0] });
+    const { result, error } = await db.query('SELECT NOW() AS ts');
+    res.json({ result, error });
   });
 
   return router;

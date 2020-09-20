@@ -49,14 +49,11 @@ export function newConfig({ penv, cwd }) {
     gql: {
       schemaFile: cwd + '/schema.graphql',
     },
-    session: {
-      secret: penv.SESSION_SECRET || 'random-string',
-      resave: 0 < parseInt(penv.SESSION_RESAVE || '0'),
-      saveUninitialized: 0 < parseInt(penv.SESSION_SAVE_UNINITIALIZED || '0'),
-      cookie: {
-        secure: 0 < parseInt(penv.SESSION_COOKIE_SECURE || '0'),
-      },
-    }
+    jwt: {
+      secret: penv.JWT_SECRET || 'jwt-secret-here', // TODO: throw error
+      credentialsRequired: false,
+      algorithms: [ 'HS256' ],
+    },
   };
   return config;
 }

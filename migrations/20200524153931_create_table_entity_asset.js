@@ -6,6 +6,7 @@ export const up = knex => {
 
     table.string('parent_entity_kind', 20).notNullable().index();
     table.uuid('parent_entity_id').notNullable().index();
+    table.string('purpose', 20).notNullable().index();
 
     table.uuid('asset_id').notNullable().index()
       .references('id').inTable(TBL_ASSET)
@@ -17,8 +18,6 @@ export const up = knex => {
     table.timestamp('updated_at', { useTz: true }).notNullable();
     table.uuid('created_by').nullable();
     table.uuid('updated_by').nullable();
-
-    table.unique(['parent_entity_id', 'asset_id']);
   });
 };
 

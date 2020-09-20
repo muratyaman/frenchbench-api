@@ -6,17 +6,52 @@
 	},
 	"item": [
 		{
+			"name": "GET /",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{host}}/",
+					"host": [
+						"{{host}}"
+					],
+					"path": [
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GET /api",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{host}}/api",
+					"host": [
+						"{{host}}"
+					],
+					"path": [
+						"api"
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "GET /api/health",
 			"request": {
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{host}}/api/health",
+					"raw": "{{host}}/api/v1/health",
 					"host": [
 						"{{host}}"
 					],
 					"path": [
 						"api",
+						"v1",
 						"health"
 					]
 				}
@@ -24,13 +59,13 @@
 			"response": []
 		},
 		{
-			"name": "POST /api/secrets",
+			"name": "POST /api/v1/auth/register",
 			"request": {
 				"method": "POST",
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n\t\"email\": \"muratyaman@gmail.com\"\n}",
+					"raw": "{\n\t\"username\": \"haci3\",\n\t\"password\": \"Pa55.word3\",\n\t\"password_confirm\": \"Pa55.word3\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -38,26 +73,43 @@
 					}
 				},
 				"url": {
-					"raw": "{{host}}/api/secrets",
+					"raw": "{{host}}/api/v1/auth/register",
 					"host": [
 						"{{host}}"
 					],
 					"path": [
 						"api",
-						"secrets"
+						"v1",
+						"auth",
+						"register"
 					]
 				}
 			},
 			"response": []
 		},
 		{
-			"name": "POST /api/users",
+			"name": "POST /api/v1/auth/login",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "f4654394-db41-4b79-bb2b-8458af7d6a41",
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"pm.environment.set(\"token\", jsonData.data.token);",
+							"pm.environment.set(\"userId\", jsonData.data.id);",
+							"pm.environment.set(\"username\", jsonData.data.username);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
 			"request": {
 				"method": "POST",
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n\t\"id\": \"3224b39c-bde6-476d-98cb-78ce565f4f27\",\n\t\"secret\": \"NA37NK\",\n\t\"email\": \"muratyaman@gmail.com\",\n\t\"username\": \"haci\",\n\t\"password\": \"Pa55.word1\",\n\t\"password_confirm\": \"Pa55.word1\"\n}",
+					"raw": "{\n\t\"username\": \"a-username\",\n\t\"password\": \"a-password\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -65,81 +117,109 @@
 					}
 				},
 				"url": {
-					"raw": "{{host}}/api/users",
+					"raw": "{{host}}/api/v1/auth/login",
 					"host": [
 						"{{host}}"
 					],
 					"path": [
 						"api",
-						"users"
+						"v1",
+						"auth",
+						"login"
 					]
 				}
 			},
 			"response": []
 		},
 		{
-			"name": "POST /api/tokens",
+			"name": "GET /api/v1/auth/me",
 			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n\t\"username\": \"haci\",\n\t\"password\": \"Pa55.word1\"\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "{{host}}/api/tokens",
-					"host": [
-						"{{host}}"
-					],
-					"path": [
-						"api",
-						"tokens"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "GET /api/entities",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{host}}/api/entities",
-					"host": [
-						"{{host}}"
-					],
-					"path": [
-						"api",
-						"entities"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "GET /api/users",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{host}}/api/users?limit=10",
-					"host": [
-						"{{host}}"
-					],
-					"path": [
-						"api",
-						"users"
-					],
-					"query": [
+				"auth": {
+					"type": "bearer",
+					"bearer": [
 						{
-							"key": "limit",
-							"value": "10"
+							"key": "token",
+							"value": "{{token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{host}}/api/v1/auth/me",
+					"host": [
+						"{{host}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"auth",
+						"me"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GET /api/v1/users",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{host}}/api/v1/users",
+					"host": [
+						"{{host}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"users"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GET /api/v1/users/:id",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{host}}/api/v1/users/:friendId",
+					"host": [
+						"{{host}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"users",
+						":friendId"
+					],
+					"variable": [
+						{
+							"key": "friendId",
+							"value": "{{friendId}}"
 						}
 					]
 				}
@@ -147,39 +227,109 @@
 			"response": []
 		},
 		{
-			"name": "GET /api/user/[id]",
+			"name": "POST /api/v1/posts",
 			"request": {
-				"method": "GET",
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
 				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"post_ref\": \"post2\",\n\t\"title\": \"Hello World 2!\",\n\t\"content\": \"lorem ipsum 2...\",\n    \"tags\": \"lorem; ipsum2\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
 				"url": {
-					"raw": "{{host}}/api/user/{{userId}}",
+					"raw": "{{host}}/api/v1/posts",
 					"host": [
 						"{{host}}"
 					],
 					"path": [
 						"api",
-						"user",
-						"{{userId}}"
+						"v1",
+						"posts"
 					]
 				}
 			},
 			"response": []
 		},
 		{
-			"name": "GET /api/user/[id]/skills",
+			"name": "GET /api/v1/posts",
 			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{token}}",
+							"type": "string"
+						}
+					]
+				},
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{host}}/api/user/{{userId}}/skills",
+					"raw": "{{host}}/api/v1/posts",
 					"host": [
 						"{{host}}"
 					],
 					"path": [
 						"api",
-						"user",
-						"{{userId}}",
-						"skills"
+						"v1",
+						"posts"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GET /api/v1/uses/:username/posts/:postRef",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{host}}/api/v1/users/:username/posts/:postRef",
+					"host": [
+						"{{host}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"users",
+						":username",
+						"posts",
+						":postRef"
+					],
+					"variable": [
+						{
+							"key": "username",
+							"value": "{{username}}"
+						},
+						{
+							"key": "postRef",
+							"value": "post1"
+						}
 					]
 				}
 			},

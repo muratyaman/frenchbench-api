@@ -1,7 +1,7 @@
-import { TBL_USER, TBL_USER_POST } from '../src/constants';
+import { TBL_USER, TBL_POST } from '../src/constants';
 
 export const up = knex => {
-  return knex.schema.createTable(TBL_USER_POST, (table) => {
+  return knex.schema.createTable(TBL_POST, (table) => {
     table.uuid('id').notNullable().primary();
 
     table.uuid('user_id').notNullable().index()
@@ -10,9 +10,8 @@ export const up = knex => {
 
     table.string('post_ref', 100).notNullable();
     table.text('title').notNullable();
-    table.text('summary').nullable();
-    table.text('tags').nullable();
     table.text('content').notNullable();
+    table.text('tags').nullable();
 
     table.timestamp('created_at', { useTz: true }).notNullable();
     table.timestamp('updated_at', { useTz: true }).notNullable();
@@ -24,5 +23,5 @@ export const up = knex => {
 };
 
 export const down = knex => {
-  return knex.schema.dropTable(TBL_USER_POST);
+  return knex.schema.dropTable(TBL_POST);
 };
