@@ -1,8 +1,6 @@
-import http from 'http';
-import dotenv from 'dotenv';
-import { bootSimple } from './bootSimple';
-
-dotenv.config(); // read .env file
+require('dotenv').config(); // read .env file
+const http = require('http');
+const { bootSimple } = require('./bootSimple');
 
 const expressApp = bootSimple({ penv: process.env, cwd: process.cwd() });
 const config = expressApp.get('config');
@@ -21,5 +19,3 @@ process.on('SIGTERM', () => {
     console.debug('HTTP server closed');
   });
 });
-
-export default {};

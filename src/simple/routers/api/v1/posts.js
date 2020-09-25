@@ -1,7 +1,7 @@
 import { v4 as newUuid } from 'uuid';
 import { TBL_POST, TBL_USER } from '../../../../constants';
 
-export function posts({ config, db, router }) {
+export function posts({ config, db, router, mw }) {
 
   const makePostRef = (post_ref = '') => {
     let ref = post_ref.replace(/[^a-zA-Z0-9]/, '-');
@@ -50,7 +50,7 @@ export function posts({ config, db, router }) {
 
     const { row: postFound, error: findPostError } = await db.findOne(TBL_POST, 'id', id);
     if (findPostError) {
-      console.error('updatePost findPostError', findPostError);
+      // console.error('updatePost findPostError', findPostError);
       error = findPostError.message;
     } else if (postFound) {
       if (postFound.user_id !== user.id) {
@@ -62,7 +62,7 @@ export function posts({ config, db, router }) {
       let change = { post_ref, title, content, tags, updated_at: dt };
       let { result, error: updatePostError } = await db.updateOne(TBL_POST, { id }, change);
       if (updatePostError) {
-        console.error('updatePost updatePostError', updatePostError);
+        // console.error('updatePost updatePostError', updatePostError);
         error = updatePostError.message;
       } else {
         data = result;
@@ -90,9 +90,13 @@ export function posts({ config, db, router }) {
     res.json({ data, error });
   };
 
+  router.post('/', mw.loginRequired);
   router.post('/', createPost);
-  router.get('/:id', retrievePost);
+
+  router.patch('/:id', mw.loginRequired);
   router.patch('/:id', updatePost);
+
+  router.get('/:id', retrievePost);
   router.get('/', findPosts);
 
   return router;

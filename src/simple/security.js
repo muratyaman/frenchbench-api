@@ -66,7 +66,7 @@ export async function verifyPassword(plainPassword, password_hash) {
   return await bcrypt.compare(plainPassword, password_hash);
 }
 
-export const hideSensitiveUserProps = row => {
+export function hideSensitiveUserProps(row) {
   delete row.password_hash;
   return row;
 }

@@ -9,7 +9,7 @@ import {
   verifyPassword,
 } from '../../../security';
 
-export function auth({ config, db, router }) {
+export function auth({ config, db, router, mw }) {
 
   const register = async (req, res) => {
     let { username = '', password = '', password_confirm = '' } = req.body;

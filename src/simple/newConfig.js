@@ -54,6 +54,10 @@ export function newConfig({ penv, cwd }) {
       credentialsRequired: false,
       algorithms: [ 'HS256' ],
     },
+    geo: {
+      latDelta: Number.parseFloat(penv.GEO_LAT_DELTA || '0.01'),
+      lonDelta: Number.parseFloat(penv.GEO_LON_DELTA || '0.01'),
+    },
   };
   return config;
 }
