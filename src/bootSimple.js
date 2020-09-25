@@ -12,7 +12,6 @@ export function bootSimple({ penv, cwd }) {
   expressApp.set('config', config);
   expressApp.set('db', db);
 
-  //expressApp.set('x-powered-by', false);
   expressApp.use(mw.requestIdAndTs);
   expressApp.use(mw.accessLogs);
   expressApp.use(mw.securityHeaders);

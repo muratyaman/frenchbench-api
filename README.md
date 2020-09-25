@@ -1,13 +1,13 @@
 # frenchbench-api
 FrenchBench API
 
-## Installation
+## Install
 
 ```
 npm install
 ```
 
-## Configuration
+## Configure
 
 Copy and edit `.env.sample`
 
@@ -17,16 +17,24 @@ Copy and edit `.env.sample`
 npm run build
 ```
 
-## Execution
+## Run
 
-Development mode using `src`:
+Development mode, run code in `src`:
 
 ```
 npm run start:dev
 ```
 
-Production mode using `dist`:
+Production mode, run built code in `dist`:
 
 ```
 npm run start
+```
+
+## Test
+
+Run test cases in `tests` using Mocha and Chai.
+
+```
+npm run test
 ```

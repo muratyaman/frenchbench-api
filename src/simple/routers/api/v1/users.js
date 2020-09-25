@@ -60,6 +60,34 @@ export function users({ config, db, router, mw }) {
     res.json({ data: result, error });
   };
 
+  const findPostsByUser = async (req, res) => {
+    let data = [], error = null;
+    try {
+      let { username = '' } = req.params;
+      username = username.toLowerCase();
+      const { row: postOwner, error: userError } = await db.findOne(TBL_USER, 'username', username);
+      if (userError) throw userError;
+      if (!postOwner) throw new ErrNotFound('user not found');
+
+      let { offset = 0, limit = 10 } = req.query;
+      if (100 < limit) limit = 100;
+      const text = 'SELECT p.id, p.post_ref, p.title, p.tags FROM ' + TBL_POST + ' p'
+        + ' WHERE p.user_id = $1'
+        + ' ORDER BY p.created_at DESC'
+        + ' OFFSET $2'
+        + ' LIMIT $3';
+      const { result, error: findError } = await db.query(text, [postOwner.id, offset, limit], 'posts-by-user');
+      if (findError) throw findError;
+      data = result && result.rows ? result.rows.map(row => {
+        row['uri'] = '/api/v1/users/' + postOwner.username + '/posts/' + row.post_ref;
+        return row;
+      }) : [];
+    } catch (err) {
+      error = err.message;
+    }
+    res.json({ data, error });
+  };
+
   const retrievePostByUserAndRef = async (req, res) => {
     let data = null, error = null;
     try {
@@ -72,11 +100,11 @@ export function users({ config, db, router, mw }) {
 
       const text = 'SELECT * FROM ' + TBL_POST
         + ' WHERE (user_id = $1) AND (post_ref = $2)';
-      const { result: posts, error: postError } = await db.query(text, [postOwner.id, post_ref], 'post-by-user-and-ref');
+      const { result, error: postError } = await db.query(text, [postOwner.id, post_ref], 'post-by-user-and-ref');
       if (postError) throw postError;
-      if (posts && posts[0]) {
+      if (result && result.rows && result.rows[0]) {
         // TODO: analytics of 'views' per record per visitor per day
-        data = posts[0];
+        data = result.rows[0];
       } else {
         throw new ErrNotFound('post not found');
       }
@@ -97,6 +125,7 @@ export function users({ config, db, router, mw }) {
   router.get('/:id', retrieveUser);
   router.get('/',    findUsers);
   router.get('/:username/posts/:post_ref', retrievePostByUserAndRef);
+  router.get('/:username/posts', findPostsByUser);
 
   return router;
 }
