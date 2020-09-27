@@ -48,11 +48,11 @@ export function isStrongPassword(password) {
  * Create hash for plain password
  * @param {string} plainPassword
  * @param {number} saltRounds
- * @returns {Promise<void>}
+ * @returns {Promise<string>}
  */
 export async function hashPassword(plainPassword, saltRounds = 10) {
   // store hash in your db
-  return await bcrypt.hash(plainPassword, saltRounds);
+  return bcrypt.hash(plainPassword, saltRounds);
 }
 
 /**
@@ -63,7 +63,7 @@ export async function hashPassword(plainPassword, saltRounds = 10) {
  */
 export async function verifyPassword(plainPassword, password_hash) {
   // result == true/false
-  return await bcrypt.compare(plainPassword, password_hash);
+  return bcrypt.compare(plainPassword, password_hash);
 }
 
 export function hideSensitiveUserProps(row) {

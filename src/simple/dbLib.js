@@ -7,8 +7,8 @@ export function extendDb(db) {
     return '$' + idx;
   };
 
-  const query = async (text, values = [], name = null) => {
-    let result, error;
+  const query = async(text, values = [], name = null) => {
+    let result = null, error = null;
     try {
       if (name) {
         result = await db.query({ name, text, values });
@@ -23,13 +23,14 @@ export function extendDb(db) {
     return { result, error };
   };
 
-  const findOne = async (table, field, value) => {
+  const findOne = async(table, field, value) => {
     const { result, error } = await query(
       `SELECT * FROM ${table} WHERE ${field} = ` + placeHolder(1),
       [ value ],
       table + '-find-one-by-' + field,
     );
-    return { result, error, row: result && result.rows && result.rows[0] ? result.rows[0] : null };
+    const row = result && result.rows && result.rows.length ? result.rows[0] : null;
+    return { result, error, row };
   };
 
   const insertOne = async(tableName, row) => {
