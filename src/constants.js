@@ -4,6 +4,7 @@ export const TBL_ASSET        = 'assets';
 export const TBL_ENTITY_ASSET = 'entities_assets';
 export const TBL_LOOKUP       = 'lookups';
 export const TBL_POST         = 'posts';
+export const TBL_ARTICLE      = 'articles';
 
 export const tablesFields = {
   [TBL_USER]:         ['id', 'username', 'password_hash', 'first_name', 'last_name', 'email', 'headline', 'neighbourhood', 'lat', 'lon', 'raw_geo', 'created_at', 'updated_at'],
@@ -11,6 +12,7 @@ export const tablesFields = {
   [TBL_ENTITY_ASSET]: ['id', 'parent_entity_kind', 'parent_entity_id', 'asset_id', 'purpose', 'meta', 'created_at', 'updated_at', 'created_by', 'updated_by'],
   [TBL_LOOKUP]:       ['id', 'category', 'value', 'label', 'meta', 'created_at', 'updated_at', 'created_by', 'updated_by'],
   [TBL_POST]:         ['id', 'user_id', 'post_ref', 'title', 'content', 'tags', 'created_at', 'updated_at', 'created_by', 'updated_by'],
+  [TBL_ARTICLE]:      ['id', 'slug', 'title', 'content', 'keywords', 'created_at', 'updated_at', 'created_by', 'updated_by'],
 };
 
 // standard http routes
