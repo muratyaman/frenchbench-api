@@ -271,20 +271,33 @@ export function newApi({ config, db, securityMgr }) {
   }
 
   async function post_search({ user, input }) {
-    let data = [], error = null;
-    let { q = '', offset = 0, limit = 10, with_assets = false } = input;
+    let data = [], error = null, ph = '';
+    let { q = '', tag = '', offset = 0, limit = 10, with_assets = false } = input;
     offset = Number.parseInt(offset);
     limit = Number.parseInt(limit);
     if (100 < limit) limit = 100;
+    const conditions = [], params = [];
+    if (q !== '') {
+      params.push(`%${q}%`);
+      ph = db.placeHolder(params.length); // TODO: use fulltext search
+      conditions.push(`p.title LIKE ${ph} OR p.content LIKE ${ph}`);
+    }
+    if (tag !== '') {
+      params.push(`%${tag}%`); // TODO: use tag index
+      conditions.push('p.tags LIKE ' + db.placeHolder(params.length));
+    }
+    const whereStr = conditions.length ? ` WHERE (${conditions.join(') AND (')})` : '';
+    params.push(offset);
+    const offsetStr = ' OFFSET ' + db.placeHolder(params.length);
+    params.push(limit);
+    const limitStr = ' LIMIT ' + db.placeHolder(params.length);
     const text = 'SELECT p.id, p.post_ref, p.title, p.tags, p.created_at, u.username FROM ' + _.TBL_POST + ' p'
       + ' INNER JOIN ' + _.TBL_USER + ' u ON p.user_id = u.id'
-      + ' WHERE (p.title LIKE $1)'
-      + '    OR (p.content LIKE $1)'
-      + '    OR (p.tags LIKE $1)'
+      + whereStr
       + ' ORDER BY p.created_at DESC' // TODO: ranking, relevance
-      + ' OFFSET $2'
-      + ' LIMIT $3';
-    const { result, error: findError } = await db.query(text, [`%${q}%`, offset, limit], 'posts-text-search');
+      + offsetStr
+      + limitStr;
+    const { result, error: findError } = await db.query(text, params, 'posts-text-search-' + hash(text));
     if (findError) throw findError;
     data = result && result.rows ? result.rows : [];
 
