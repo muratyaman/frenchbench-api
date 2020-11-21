@@ -94,11 +94,16 @@ export function newApi({ config, db, securityMgr }) {
   }
 
   // we can use user_retrieve
-  async function user_retrieve_current({ user = {} }) {
-    const { id = null } = user;
-    const { row, error } = await db.find(_.TBL_USER, { id }, 1);
-    const data = securityMgr.hideSensitiveUserProps(row);
-    return { data, error };
+  async function user_retrieve_self({ user = {} }) {
+    const { id = null } = user ?? {};
+    if (id) {
+      const { row, error } = await db.find(_.TBL_USER, { id }, 1);
+      const data = securityMgr.hideSensitiveUserProps(row);
+      return { data, error };
+    } else {
+      log('user_retrieve_self: user id is null');
+      return { data: null, error: 'user id is null' };
+    }
   }
 
   async function user_retrieve({ user, id = null }) {
@@ -570,7 +575,7 @@ export function newApi({ config, db, securityMgr }) {
 
   const actionsProtected = [
     'signout',
-    'user_retrieve_current',
+    'user_retrieve_self',
     'usercontact_update',
     'usercontact_update_self',
     'usergeo_update',
@@ -584,6 +589,8 @@ export function newApi({ config, db, securityMgr }) {
     'usercontact_update',
   ];
   const actionsForSelf = [
+    'me',
+    'user_retrieve_self',
     'usergeo_update_self',
     'usercontact_update_self',
   ];
@@ -616,8 +623,8 @@ export function newApi({ config, db, securityMgr }) {
     signup,
     signin,
     signout,
-    user_retrieve_current,
-    me: user_retrieve_current, // alias
+    user_retrieve_self,
+    me: user_retrieve_self, // alias
 
     user_search,
     user_retrieve,
