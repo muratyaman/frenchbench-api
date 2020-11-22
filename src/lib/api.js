@@ -199,6 +199,13 @@ export function newApi({ config, db, securityMgr }) {
     return ref;
   }
 
+  function makeArticleSlug(slug = '') {
+    let ref = slug.toLocaleLowerCase();
+    if (ref === '') ref = (new Date()).toISOString();
+    ref = ref.toLocaleLowerCase().replace(/[^a-z0-9]/g, '-');
+    return ref;
+  }
+
   async function post_create({ user, input }) {
     if (!user) throw new ErrForbidden();
 
@@ -256,7 +263,7 @@ export function newApi({ config, db, securityMgr }) {
     const { row: postFound, error: findPostErr } = await db.find(_.TBL_POST, { id }, 1);
     if (findPostErr) throw findPostErr;
     if (!postFound) throw new ErrNotFound(_.MSG_POST_NOT_FOUND);
-    if (postFound.user_id !== user.id) throw new ErrForbidden(); // TODO: we can use created_at
+    if (postFound.user_id !== user.id) throw new ErrForbidden(); // TODO: we can use postFound.created_by
 
     if (!title) title = 'my post at ' + dt.toISOString();
     if (!post_ref) post_ref = title;
@@ -386,11 +393,11 @@ export function newApi({ config, db, securityMgr }) {
     limit = Number.parseInt(limit);
     if (100 < limit) limit = 100;
     // do not include large records e.g. avoid returning large text fields
-    const text = 'SELECT a.id, a.slug, a.title, keywords FROM ' + _.TBL_ARTICLE + ' a'
+    const text = 'SELECT a.id, a.slug, a.title, a.keywords, a.created_at, a.updated_at FROM ' + _.TBL_ARTICLE + ' a'
       + ' WHERE (a.title LIKE $1)'
       + '    OR (a.content LIKE $1)'
       + '    OR (a.keywords LIKE $1)'
-      + ' ORDER BY a.created_at DESC'
+      + ' ORDER BY a.title'
       + ' OFFSET $2'
       + ' LIMIT $3';
     const { result, error: findError } = await db.query(text, [`%${q}%`, offset, limit], 'article-text-search');
@@ -422,6 +429,27 @@ export function newApi({ config, db, securityMgr }) {
     } else {
       return { data: null, error: 'article id or slug required' };
     }
+  }
+
+  async function article_update({ user, id, input }) {
+    let error = null;
+
+    let { slug, title, content, keywords } = input;
+    const dt = new Date();
+
+    const { row: articleFound, error: findArticleErr } = await db.find(_.TBL_ARTICLE, { id }, 1);
+    if (findArticleErr) throw findArticleErr;
+    if (!articleFound) throw new ErrNotFound(_.MSG_ARTICLE_NOT_FOUND);
+    if (articleFound.created_by !== user.id) throw new ErrForbidden();
+
+    if (!title) title = 'my article at ' + dt.toISOString();
+    if (!slug) slug = title;
+    slug = makeArticleSlug(slug);
+    let change = { slug, title, content, keywords, updated_at: dt, updated_by: user.id, };
+    let { result, error: updateArticleError } = await db.update(_.TBL_ARTICLE, { id }, change, 1);
+    if (updateArticleError) throw updateArticleError;
+
+    return { data: result && result.rowCount, error };
   }
 
   async function asset_create({ user, input }) {
@@ -581,6 +609,7 @@ export function newApi({ config, db, securityMgr }) {
     'usergeo_update',
     'usergeo_update_self',
     'post_create', 'post_update', 'post_delete',
+    'article_update',
     'asset_create', 'asset_delete',
     'entity_asset_create', 'entity_asset_delete',
   ];
@@ -594,7 +623,7 @@ export function newApi({ config, db, securityMgr }) {
     'usergeo_update_self',
     'usercontact_update_self',
   ];
-  const actionsForOwners = ['post_update', 'asset_delete', 'entity_asset_delete'];
+  const actionsForOwners = ['post_update', 'article_update', 'asset_delete', 'entity_asset_delete'];
 
   function _isAllowed({ action = '', user = null, id = null, input = {}, rowFound = null }) {
     let protect = false;
@@ -644,6 +673,7 @@ export function newApi({ config, db, securityMgr }) {
 
     article_search,
     article_retrieve,
+    article_update,
 
     asset_create,
     asset_search,

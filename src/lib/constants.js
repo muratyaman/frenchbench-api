@@ -61,4 +61,5 @@ export const MSG_ID_REQUIRED         = 'id required';
 export const MSG_USERNAME_REQUIRED   = 'username is required';
 export const MSG_POST_NOT_FOUND      = 'post not found';
 export const MSG_USER_NOT_FOUND      = 'user not found';
+export const MSG_ARTICLE_NOT_FOUND   = 'article not found';
 
