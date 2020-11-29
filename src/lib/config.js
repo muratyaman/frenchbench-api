@@ -20,6 +20,10 @@ export function newConfig(penv) {
       port: penv.HTTP_PORT || 12000,
     },
 
+    ws: {
+      port: penv.WS_PORT || 13000,
+    },
+
     jwt: {
       secret: penv.JWT_SECRET,
       credentialsRequired: false,
