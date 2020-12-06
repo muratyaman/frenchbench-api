@@ -1,4 +1,4 @@
-import { TBL_USER } from '../src/constants';
+import { TBL_USER } from '../src/lib/constants';
 
 export const up = knex => {
   return knex.schema.createTable(TBL_USER, (table) => {
@@ -14,7 +14,6 @@ export const up = knex => {
     table.string('neighbourhood', 50).nullable().index();
     table.float('lat').defaultTo(0);
     table.float('lon').defaultTo(0);
-    table.jsonb('raw_geo').defaultTo('{}');
 
     table.timestamp('created_at', { useTz: true }).notNullable();
     table.timestamp('updated_at', { useTz: true }).notNullable();

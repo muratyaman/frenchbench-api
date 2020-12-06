@@ -1,4 +1,4 @@
-import { TBL_LOOKUP } from '../src/constants';
+import { TBL_LOOKUP } from '../src/lib/constants';
 
 export const up = knex => {
   return knex.schema.createTable(TBL_LOOKUP, (table) => {

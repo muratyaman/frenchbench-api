@@ -176,8 +176,9 @@ export function newApi({ config, db, securityMgr }) {
 
   async function usergeo_update({ user, id, input }) {
     // permission is checked by _isProtected()
-    let { lat, lon, raw_geo } = input;
-    let change = { lat, lon, raw_geo, updated_at: new Date() };
+    let { lat = 0, lon = 0, geo_accuracy = 9999 } = input;
+    const now = new Date();
+    let change = { lat, lon, geo_accuracy, geo_updated_at: now, updated_at: now };
     const condition = { id }; // TODO: for now, only user himself can update
     let { result, error } = await db.update(_.TBL_USER, condition, change, 1);
     return { data: result && result.rowCount, error };
@@ -185,8 +186,9 @@ export function newApi({ config, db, securityMgr }) {
 
   async function usergeo_update_self({ user, input }) {
     // permission is checked by _isProtected()
-    let { lat, lon, raw_geo } = input;
-    let change = { lat, lon, raw_geo, updated_at: new Date() };
+    let { lat = 0, lon = 0, geo_accuracy = 9999 } = input;
+    const now = new Date();
+    let change = { lat, lon, geo_accuracy, geo_updated_at: now, updated_at: now };
     const condition = { id: user.id }; // TODO: for now, only user himself can update
     let { result, error } = await db.update(_.TBL_USER, condition, change, 1);
     return { data: result && result.rowCount, error };
@@ -209,16 +211,16 @@ export function newApi({ config, db, securityMgr }) {
   async function post_create({ user, input }) {
     if (!user) throw new ErrForbidden();
 
-    let { post_ref = '', title = '', content = '', tags = '', asset_id = null } = input;
-    const dt = new Date();
+    let { post_ref = '', title = '', content = '', tags = '', asset_id = null, lat = 0, lon = 0, geo_accuracy = 9999 } = input;
+    const now = new Date();
     const id = newUuid();
     if (!title) title = 'my post';
-    if (!post_ref) post_ref = title + dt.toISOString();
+    if (!post_ref) post_ref = title + now.toISOString();
     post_ref = makePostRef(post_ref);
     const row = {
       id,
-      created_at: dt,
-      updated_at: dt,
+      created_at: now,
+      updated_at: now,
       user_id: user.id,
       created_by: user.id,
       updated_by: user.id,
@@ -226,6 +228,10 @@ export function newApi({ config, db, securityMgr }) {
       title,
       content,
       tags,
+      lat,
+      lon,
+      geo_accuracy,
+      geo_updated_at: now,
     };
     const { result, error } = await db.insert(_.TBL_POST, row);
     if (asset_id) {
@@ -257,18 +263,28 @@ export function newApi({ config, db, securityMgr }) {
   async function post_update({ user, id, input }) {
     let error = null;
 
-    let { post_ref, title, content, tags } = input;
-    const dt = new Date();
+    let { post_ref, title, content, tags, lat = 0, lon = 0, geo_accuracy = 9999 } = input;
+    const now = new Date();
 
     const { row: postFound, error: findPostErr } = await db.find(_.TBL_POST, { id }, 1);
     if (findPostErr) throw findPostErr;
     if (!postFound) throw new ErrNotFound(_.MSG_POST_NOT_FOUND);
     if (postFound.user_id !== user.id) throw new ErrForbidden(); // TODO: we can use postFound.created_by
 
-    if (!title) title = 'my post at ' + dt.toISOString();
+    if (!title) title = 'my post at ' + now.toISOString();
     if (!post_ref) post_ref = title;
     post_ref = makePostRef(post_ref);
-    let change = { post_ref, title, content, tags, updated_at: dt, updated_by: user.id, };
+    let change = {
+      post_ref,
+      title,
+      content,
+      tags,
+      updated_at: now,
+      updated_by: user.id,
+      lat,
+      lon,
+      geo_accuracy,
+    };
     let { result, error: updatePostError } = await db.update(_.TBL_POST, { id }, change, 1);
     if (updatePostError) throw updatePostError;
 

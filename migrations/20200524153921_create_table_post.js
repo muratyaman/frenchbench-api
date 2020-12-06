@@ -1,4 +1,4 @@
-import { TBL_USER, TBL_POST } from '../src/constants';
+import { TBL_USER, TBL_POST } from '../src/lib/constants';
 
 export const up = knex => {
   return knex.schema.createTable(TBL_POST, (table) => {

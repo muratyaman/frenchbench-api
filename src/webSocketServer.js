@@ -3,6 +3,7 @@ import WebSocket from 'ws';
 import { v4 as newUuid } from 'uuid';
 
 export const MSG_KIND_SES    = 'ses'; // connected, server => session ID => client
+export const MSG_KIND_GEO    = 'geo'; // geolocation update
 export const MSG_KIND_JOINED = 'joined';
 export const MSG_KIND_LEFT   = 'left';
 export const MSG_KIND_CHAT   = 'chat';
@@ -49,7 +50,7 @@ export class FbHub {
   }
 }
 
-export async function newWebSocketServer({ config, securityMgr }) {
+export async function newWebSocketServer({ config, securityMgr, api }) {
 
   const webSocketServer = new WebSocket.Server({ noServer: true });
   const hub = new FbHub();
@@ -124,6 +125,22 @@ export async function newWebSocketServer({ config, securityMgr }) {
       let gossipObj;
 
       switch (msgObj.kind) {
+        case MSG_KIND_GEO:
+          // @see https://developer.mozilla.org/en-US/docs/Web/API/GeolocationPosition
+          if (msgObj.geo) {
+            const { timestamp = 0, coords = null } = msgObj.geo ?? {};
+            if (timestamp && coords) {
+              const { latitude, longitude, accuracy } = coords;
+              const input = {
+                lat: latitude,
+                lon: longitude,
+                geo_accuracy: accuracy,
+              };
+              // no 'await', ignore result
+              api.usergeo_update_self({ user: owner, input });
+            }
+          }
+          break;
         case MSG_KIND_JOINED:
           // TODO:
           break;

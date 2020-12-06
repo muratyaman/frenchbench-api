@@ -23,12 +23,32 @@ export const ENTITY_ASSET_PURPOSE = {
 };
 
 export const tablesFields = {
-  [TBL_USER]:         ['id', 'username', 'password_hash', 'first_name', 'last_name', 'email', 'headline', 'neighbourhood', 'lat', 'lon', 'raw_geo', 'created_at', 'updated_at'],
-  [TBL_ASSET]:        ['id', 'asset_type', 'media_type', 'label', 'url', 'meta', 'created_at', 'updated_at', 'created_by', 'updated_by'],
-  [TBL_ENTITY_ASSET]: ['id', 'parent_entity_kind', 'parent_entity_id', 'asset_id', 'purpose', 'meta', 'created_at', 'updated_at', 'created_by', 'updated_by'],
-  [TBL_LOOKUP]:       ['id', 'category', 'value', 'label', 'meta', 'created_at', 'updated_at', 'created_by', 'updated_by'],
-  [TBL_POST]:         ['id', 'user_id', 'post_ref', 'title', 'content', 'tags', 'created_at', 'updated_at', 'created_by', 'updated_by'],
-  [TBL_ARTICLE]:      ['id', 'slug', 'title', 'content', 'keywords', 'created_at', 'updated_at', 'created_by', 'updated_by'],
+  [TBL_USER]: [
+    'id', 'username', 'password_hash', 'first_name', 'last_name', 'email', 'headline', 'neighbourhood',
+    'lat', 'lon', 'geo_accuracy', 'geo_updated_at', // geolocation tracking
+    'created_at', 'updated_at', // basic audit trail
+  ],
+  [TBL_ASSET]: [
+    'id', 'asset_type', 'media_type', 'label', 'url', 'meta',
+    'created_at', 'updated_at', 'created_by', 'updated_by',
+  ],
+  [TBL_ENTITY_ASSET]: [
+    'id', 'parent_entity_kind', 'parent_entity_id', 'asset_id', 'purpose', 'meta',
+    'created_at', 'updated_at', 'created_by', 'updated_by',
+  ],
+  [TBL_LOOKUP]: [
+    'id', 'category', 'value', 'label', 'meta',
+    'created_at', 'updated_at', 'created_by', 'updated_by',
+  ],
+  [TBL_POST]: [
+    'id', 'user_id', 'post_ref', 'title', 'content', 'tags',
+    'lat', 'lon', 'geo_accuracy', 'geo_updated_at', // geolocation tracking
+    'created_at', 'updated_at', 'created_by', 'updated_by', // audit trail
+  ],
+  [TBL_ARTICLE]: [
+    'id', 'slug', 'title', 'content', 'keywords',
+    'created_at', 'updated_at', 'created_by', 'updated_by', // audit trail
+  ],
 };
 
 export const ACCEPT_MIMETYPES      = ['image/jpeg', 'image/png'];

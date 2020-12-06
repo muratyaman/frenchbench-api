@@ -1,4 +1,4 @@
-import { TBL_ASSET, TBL_ENTITY_ASSET } from '../src/constants';
+import { TBL_ASSET, TBL_ENTITY_ASSET } from '../src/lib/constants';
 
 export const up = knex => {
   return knex.schema.createTable(TBL_ENTITY_ASSET, (table) => {

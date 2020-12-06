@@ -5,9 +5,9 @@ import { newWebSocketServer } from './webSocketServer';
 boot();
 
 async function boot() {
-  const { httpServer, config, pool, securityMgr } = await newHttpServer(process.env);
+  const { httpServer, config, pool, securityMgr, api } = await newHttpServer(process.env);
   
-  const { webSocketServer, onHttpUpgrade } = await newWebSocketServer({ config, securityMgr });
+  const { webSocketServer, onHttpUpgrade } = await newWebSocketServer({ config, securityMgr, api });
 
   httpServer.on('upgrade', onHttpUpgrade);
 
