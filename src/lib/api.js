@@ -285,6 +285,7 @@ export function newApi({ config, db, securityMgr }) {
     const { result, error: findError } = await db.query(text, params, 'posts-text-search-' + hash(text));
     if (findError) throw findError;
     data = result && result.rows ? result.rows : [];
+    console.log('found ' + data.length + ' rows');
 
     if (with_assets && data.length) {
       // with side effect on data
@@ -673,7 +674,7 @@ export function newApi({ config, db, securityMgr }) {
     const limitStr = ' LIMIT ' + db.placeHolder(params.length);
     const text = 'SELECT a.id, a.advert_ref, a.title, a.tags, '
       + 'a.is_buying, a.is_service, a.price, a.currency, a.created_at, u.username FROM ' + _.TBL_ADVERT + ' a'
-      + ' INNER JOIN ' + _.TBL_USER + ' u ON a.user_id = a.id'
+      + ' INNER JOIN ' + _.TBL_USER + ' u ON a.user_id = u.id'
       + whereStr
       + ' ORDER BY a.created_at DESC' // TODO: ranking, relevance
       + offsetStr
@@ -681,6 +682,7 @@ export function newApi({ config, db, securityMgr }) {
     const { result, error: findError } = await db.query(text, params, 'adverts-text-search-' + hash(text));
     if (findError) throw findError;
     data = result && result.rows ? result.rows : [];
+    console.log('found ' + data.length + ' rows');
 
     if (with_assets && data.length) {
       // with side effect on data
