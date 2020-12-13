@@ -5,14 +5,6 @@ import { hash, log, newUuid, ts } from './utils';
 
 export function newApi({ config, db, securityMgr }) {
 
-  async function echo({ input }) {
-    return Promise.resolve({ data: input, error: null });
-  }
-
-  async function health() {
-    return Promise.resolve({ data: ts(), error: null });
-  }
-
   async function signup({ input }) {
     let data = null, error = null;
     try {
@@ -38,14 +30,8 @@ export function newApi({ config, db, securityMgr }) {
       if (!password_hash) { // this is unexpected
         throw new Error(_.MSG_UNKNOWN_ERROR);
       }
-      const id = newUuid(), dt = new Date();
-      const userRow = {
-        id,
-        created_at: dt,
-        updated_at: dt,
-        username,
-        password_hash,
-      };
+      const id = newUuid();
+      const userRow = newRow({ username, password_hash, id, user: { id } });
       const { result, error: insertError } = await db.insert(_.TBL_USER, userRow);
       if (insertError) { // this is unexpected
         // throw insertError;
@@ -150,7 +136,7 @@ export function newApi({ config, db, securityMgr }) {
 
     if (with_assets && data.length) {
       // with side effect on data
-      await find_attach_assets({ user, data, parent_entity_kind: _.ENTITY_ASSET_PARENT_KIND.user });
+      await find_attach_assets({ user, data, parent_entity_kind: _.ENTITY_ASSET_PARENT_KIND.USER });
     }
 
     return { data, error };
@@ -159,7 +145,7 @@ export function newApi({ config, db, securityMgr }) {
   async function usercontact_update({ user, id, input }) {
     // permission is checked by _isProtected()
     // let { first_name, last_name, email, phone, headline, neighbourhood } = input;
-    let change = { ...input, updated_at: new Date() }; // TODO: limit inputs?
+    let change = updateRow({ ...input, user }); // TODO: limit inputs?
     const condition = { id }; // TODO: for now, only user himself can update
     let { result, error } = await db.update(_.TBL_USER, condition, change, 1);
     return { data: result && result.rowCount, error };
@@ -168,7 +154,7 @@ export function newApi({ config, db, securityMgr }) {
   async function usercontact_update_self({ user, input }) {
     // permission is checked by _isProtected()
     // let { first_name, last_name, email, phone, headline, neighbourhood } = input;
-    let change = { ...input, updated_at: new Date() }; // TODO: limit inputs?
+    let change = updateRow({ ...input, user }); // TODO: limit inputs?
     const condition = { id: user.id }; // TODO: for now, only user himself can update
     let { result, error } = await db.update(_.TBL_USER, condition, change, 1);
     return { data: result && result.rowCount, error };
@@ -178,7 +164,7 @@ export function newApi({ config, db, securityMgr }) {
     // permission is checked by _isProtected()
     let { lat = 0, lon = 0, geo_accuracy = 9999 } = input;
     const now = new Date();
-    let change = { lat, lon, geo_accuracy, geo_updated_at: now, updated_at: now };
+    let change = updateRow({ lat, lon, geo_accuracy, geo_updated_at: now, user });
     const condition = { id }; // TODO: for now, only user himself can update
     let { result, error } = await db.update(_.TBL_USER, condition, change, 1);
     return { data: result && result.rowCount, error };
@@ -188,25 +174,13 @@ export function newApi({ config, db, securityMgr }) {
     // permission is checked by _isProtected()
     let { lat = 0, lon = 0, geo_accuracy = 9999 } = input;
     const now = new Date();
-    let change = { lat, lon, geo_accuracy, geo_updated_at: now, updated_at: now };
+    let change = updateRow({ lat, lon, geo_accuracy, geo_updated_at: now, user });
     const condition = { id: user.id }; // TODO: for now, only user himself can update
     let { result, error } = await db.update(_.TBL_USER, condition, change, 1);
     return { data: result && result.rowCount, error };
   }
 
-  function makePostRef(post_ref = '') {
-    let ref = post_ref.toLocaleLowerCase();
-    if (ref === '') ref = (new Date()).toISOString();
-    ref = ref.toLocaleLowerCase().replace(/[^a-z0-9]/g, '-');
-    return ref;
-  }
 
-  function makeArticleSlug(slug = '') {
-    let ref = slug.toLocaleLowerCase();
-    if (ref === '') ref = (new Date()).toISOString();
-    ref = ref.toLocaleLowerCase().replace(/[^a-z0-9]/g, '-');
-    return ref;
-  }
 
   async function post_create({ user, input }) {
     if (!user) throw new ErrForbidden();
@@ -217,22 +191,11 @@ export function newApi({ config, db, securityMgr }) {
     if (!title) title = 'my post';
     if (!post_ref) post_ref = title + now.toISOString();
     post_ref = makePostRef(post_ref);
-    const row = {
-      id,
-      created_at: now,
-      updated_at: now,
-      user_id: user.id,
-      created_by: user.id,
-      updated_by: user.id,
-      post_ref,
-      title,
-      content,
-      tags,
-      lat,
-      lon,
-      geo_accuracy,
-      geo_updated_at: now,
-    };
+    const row = newRow({
+      id, user_id: user.id, user,
+      post_ref, title, content, tags,
+      lat, lon, geo_accuracy, geo_updated_at: now,
+    });
     const { result, error } = await db.insert(_.TBL_POST, row);
     if (asset_id) {
       try {
@@ -274,17 +237,11 @@ export function newApi({ config, db, securityMgr }) {
     if (!title) title = 'my post at ' + now.toISOString();
     if (!post_ref) post_ref = title;
     post_ref = makePostRef(post_ref);
-    let change = {
-      post_ref,
-      title,
-      content,
-      tags,
-      updated_at: now,
-      updated_by: user.id,
-      lat,
-      lon,
-      geo_accuracy,
-    };
+    let change = updateRow({
+      user,
+      post_ref, title, content, tags,
+      lat, lon, geo_accuracy,
+    });
     let { result, error: updatePostError } = await db.update(_.TBL_POST, { id }, change, 1);
     if (updatePostError) throw updatePostError;
 
@@ -331,7 +288,7 @@ export function newApi({ config, db, securityMgr }) {
 
     if (with_assets && data.length) {
       // with side effect on data
-      await find_attach_assets({ user, data, parent_entity_kind: _.ENTITY_ASSET_PARENT_KIND.post });
+      await find_attach_assets({ user, data, parent_entity_kind: _.ENTITY_ASSET_PARENT_KIND.POST });
     }
 
     return { data, error };
@@ -367,7 +324,7 @@ export function newApi({ config, db, securityMgr }) {
 
     if (with_assets && data.length) {
       // with side effect on data
-      await find_attach_assets({ user, data, parent_entity_kind: _.ENTITY_ASSET_PARENT_KIND.post });
+      await find_attach_assets({ user, data, parent_entity_kind: _.ENTITY_ASSET_PARENT_KIND.POST });
     }
 
     return { data, error };
@@ -396,7 +353,7 @@ export function newApi({ config, db, securityMgr }) {
 
     if (with_assets && data) {
       // with side effect on data
-      await find_attach_assets({ user, data: [ data ], parent_entity_kind: _.ENTITY_ASSET_PARENT_KIND.post });
+      await find_attach_assets({ user, data: [ data ], parent_entity_kind: _.ENTITY_ASSET_PARENT_KIND.POST });
     }
 
     return { data, error };
@@ -422,7 +379,7 @@ export function newApi({ config, db, securityMgr }) {
 
     if (with_assets && data.length) {
       // with side effect on data
-      await find_attach_assets({ user, data, parent_entity_kind: _.ENTITY_ASSET_PARENT_KIND.article });
+      await find_attach_assets({ user, data, parent_entity_kind: _.ENTITY_ASSET_PARENT_KIND.ARTICLE });
     }
 
     return { data, error };
@@ -438,7 +395,7 @@ export function newApi({ config, db, securityMgr }) {
 
       if (with_assets && data) {
         // with side effect on data
-        await find_attach_assets({ user, data: [ data ], parent_entity_kind: _.ENTITY_ASSET_PARENT_KIND.article });
+        await find_attach_assets({ user, data: [ data ], parent_entity_kind: _.ENTITY_ASSET_PARENT_KIND.ARTICLE });
       }
 
       return { data, error };
@@ -461,7 +418,7 @@ export function newApi({ config, db, securityMgr }) {
     if (!title) title = 'my article at ' + dt.toISOString();
     if (!slug) slug = title;
     slug = makeArticleSlug(slug);
-    let change = { slug, title, content, keywords, updated_at: dt, updated_by: user.id, };
+    let change = updateRow({ slug, title, content, keywords, user });
     let { result, error: updateArticleError } = await db.update(_.TBL_ARTICLE, { id }, change, 1);
     if (updateArticleError) throw updateArticleError;
 
@@ -472,19 +429,7 @@ export function newApi({ config, db, securityMgr }) {
     if (!user) throw new ErrForbidden();
 
     let { id = newUuid(), asset_type = null, media_type = null, label = null, url = null, meta = {} } = input;
-    const dt = new Date();
-    const row = {
-      id,
-      created_at: dt,
-      updated_at: dt,
-      created_by: user.id,
-      updated_by: user.id,
-      asset_type,
-      media_type,
-      label,
-      url,
-      meta,
-    };
+    const row = newRow({ id, user, asset_type, media_type, label, url, meta });
     const { result, error } = await db.insert(_.TBL_ASSET, row);
     return { data: 0 < result.rowCount ? id : null, error };
   }
@@ -531,20 +476,16 @@ export function newApi({ config, db, securityMgr }) {
     if (!user) throw new ErrForbidden();
 
     let { parent_entity_kind = null, parent_entity_id = null, purpose = null, asset_id = null, meta = {} } = input;
-    const dt = new Date();
     const id = newUuid();
-    const row = {
+    const row = newRow({
       id,
-      created_at: dt,
-      updated_at: dt,
-      created_by: user.id,
-      updated_by: user.id,
+      user,
       parent_entity_kind, // posts, users, articles
       parent_entity_id,   // ref: posts.id or users.id ...
       purpose,  // 'user-profile-image'
       asset_id, // ref: assets.id
       meta,
-    };
+    });
     const { result, error } = await db.insert(_.TBL_ENTITY_ASSET, row);
     return { data: 0 < result.rowCount ? id : null, error };
   }
@@ -617,6 +558,203 @@ export function newApi({ config, db, securityMgr }) {
     }
   }
 
+  async function advert_create({ user, input }) {
+    if (!user) throw new ErrForbidden();
+
+    let {
+      advert_ref = '', title = '', content = '', tags = '', asset_id = null,
+      is_buying = 0, is_service = 0, price = 0, currency = 'GBP',
+      lat = 0, lon = 0, geo_accuracy = 9999,
+    } = input;
+    const now = new Date();
+    const id = newUuid();
+    if (!title) title = 'my advert';
+    if (!advert_ref) advert_ref = title + now.toISOString();
+    advert_ref = makePostRef(advert_ref);
+    const row = newRow({
+      id, user_id: user.id, user,
+      advert_ref, title, content, tags,
+      is_buying, is_service, price, currency,
+      lat, lon, geo_accuracy, geo_updated_at: now,
+    });
+    const { result, error } = await db.insert(_.TBL_ADVERT, row);
+    if (asset_id) {
+      try {
+        const entityAssetInsertResult = await entity_asset_create({
+          user,
+          input: {
+            parent_entity_kind: _.ENTITY_ASSET_PARENT_KIND.ADVERT,
+            parent_entity_id: id,
+            purpose: _.ENTITY_ASSET_PURPOSE.ADVERT_IMAGE,
+            asset_id,
+          },
+        });
+        log('entityAssetInsertResult success', entityAssetInsertResult);
+      } catch (err) {
+        log('entityAssetInsertResult error', err);
+      }
+    }
+    return { data: 0 < result.rowCount ? id : null, error };
+  }
+
+  async function advert_retrieve({ user, id, input }) {
+    // TODO: validate uuid
+    // TODO: analytics of 'views' per record per visitor per day
+    const { row: data, error } = await db.find(_.TBL_ADVERT, { id }, 1);
+    return { data, error };
+  }
+
+  async function advert_update({ user, id, input }) {
+    let error = null;
+
+    let {
+      advert_ref, title, content, tags,
+      is_buying = 0, is_service = 0, price = 0, currency = 'GBP',
+      lat = 0, lon = 0, geo_accuracy = 9999,
+    } = input;
+    const now = new Date();
+
+    const { row: advertFound, error: findAdvertErr } = await db.find(_.TBL_ADVERT, { id }, 1);
+    if (findAdvertErr) throw findAdvertErr;
+    if (!advertFound) throw new ErrNotFound(_.MSG_ADVERT_NOT_FOUND);
+    if (advertFound.user_id !== user.id) throw new ErrForbidden(); // TODO: we can use postFound.created_by
+
+    if (!title) title = 'my advert at ' + now.toISOString();
+    if (!advert_ref) advert_ref = title;
+    advert_ref = makePostRef(advert_ref);
+    let change = updateRow({
+      user, advert_ref, title, content, tags,
+      is_buying, is_service, price, currency,
+      lat, lon, geo_accuracy,
+    });
+    let { result, error: updateAdvertError } = await db.update(_.TBL_ADVERT, { id }, change, 1);
+    if (updateAdvertError) throw updateAdvertError;
+
+    return { data: result && result.rowCount, error };
+  }
+
+  async function advert_delete({ user, id, input }) {
+    // TODO: validate uuid
+    // TODO: delete related records
+    const { result, error } = await db.del(_.TBL_ADVERT, { id }, 1);
+    return { data: 0 < result.rowCount, error };
+  }
+
+  async function advert_search({ user, input }) {
+    let data = [], error = null, ph = '';
+    let { q = '', tag = '', min_price = -1, max_price = -1, offset = 0, limit = 10, with_assets = false } = input;
+    min_price = Number.parseInt(min_price);
+    max_price = Number.parseInt(max_price);
+    offset = Number.parseInt(offset);
+    limit = Number.parseInt(limit);
+    if (100 < limit) limit = 100;
+    const conditions = [], params = [];
+    if (q !== '') {
+      params.push(`%${q}%`);
+      ph = db.placeHolder(params.length); // TODO: use fulltext search
+      conditions.push(`a.title LIKE ${ph} OR a.content LIKE ${ph}`);
+    }
+    if (tag !== '') {
+      params.push(`%${tag}%`); // TODO: use tag index
+      conditions.push('a.tags LIKE ' + db.placeHolder(params.length));
+    }
+    if (0 <= min_price) {
+      params.push(min_price);
+      conditions.push(db.placeHolder(params.length) + ' <= a.price');
+    }
+    if (0 <= max_price) {
+      params.push(max_price);
+      conditions.push('a.price <= ' + db.placeHolder(params.length));
+    }
+    const whereStr = conditions.length ? ` WHERE (${conditions.join(') AND (')})` : '';
+    params.push(offset);
+    const offsetStr = ' OFFSET ' + db.placeHolder(params.length);
+    params.push(limit);
+    const limitStr = ' LIMIT ' + db.placeHolder(params.length);
+    const text = 'SELECT a.id, a.advert_ref, a.title, a.tags, '
+      + 'a.is_buying, a.is_service, a.price, a.currency, a.created_at, u.username FROM ' + _.TBL_ADVERT + ' a'
+      + ' INNER JOIN ' + _.TBL_USER + ' u ON a.user_id = a.id'
+      + whereStr
+      + ' ORDER BY a.created_at DESC' // TODO: ranking, relevance
+      + offsetStr
+      + limitStr;
+    const { result, error: findError } = await db.query(text, params, 'adverts-text-search-' + hash(text));
+    if (findError) throw findError;
+    data = result && result.rows ? result.rows : [];
+
+    if (with_assets && data.length) {
+      // with side effect on data
+      await find_attach_assets({ user, data, parent_entity_kind: _.ENTITY_ASSET_PARENT_KIND.ADVERT });
+    }
+
+    return { data, error };
+  }
+
+  async function advert_search_by_user({ user, input = {} }) {
+    let data = [], error = null;
+    let { user_id = null, username = null, q = '', offset = 0, limit = 10, with_assets = false } = input;
+    offset = Number.parseInt(offset);
+    limit = Number.parseInt(limit);
+    if (100 < limit) limit = 100;
+    if (!user_id && username) {
+      const { row: advertOwner, error: userError } = await db.find(_.TBL_USER, { username }, 1);
+      if (userError) throw userError;
+      if (!advertOwner) throw new ErrNotFound(_.MSG_USER_NOT_FOUND);
+      user_id = advertOwner.id;
+    }
+    if (user_id && !username) {
+      const { row: advertOwner2, error: userError2 } = await db.find(_.TBL_USER, { id: user_id }, 1);
+      if (userError2) throw userError2;
+      if (!advertOwner2) throw new ErrNotFound('user not found');
+      username = advertOwner2.username;
+    }
+    if (!user_id) throw new ErrBadRequest('user_id or username is required');
+    const text = 'SELECT id, advert_ref, title, tags, is_buying, is_service, price, currency, created_at FROM ' + _.TBL_ADVERT
+      + ' WHERE user_id = $1'
+      + ' ORDER BY created_at DESC'
+      + ' OFFSET $2'
+      + ' LIMIT $3';
+    const { result, error: findError } = await db.query(text, [user_id, offset, limit], 'adverts-by-user');
+    if (findError) throw findError;
+    data = result && result.rows ? result.rows.map(row => ({ ...row, username })) : []; // enrich with username
+
+    if (with_assets && data.length) {
+      // with side effect on data
+      await find_attach_assets({ user, data, parent_entity_kind: _.ENTITY_ASSET_PARENT_KIND.ADVERT });
+    }
+
+    return { data, error };
+  }
+
+  // use retrieve_advert(), it is faster
+  async function advert_retrieve_by_username_and_advert_ref({ user, input = {} }) {
+    let data = null, error = null;
+    let { username = '', advert_ref = '', with_assets = false } = input;
+    username = username.toLowerCase();
+    advert_ref = advert_ref.toLowerCase();
+    const { row: advertOwner, error: userError } = await db.find(_.TBL_USER, { username }, 1);
+    if (userError) throw userError;
+    if (!advertOwner) throw new ErrNotFound('user not found');
+
+    const text = 'SELECT * FROM ' + _.TBL_ADVERT
+      + ' WHERE (user_id = $1) AND (advert_ref = $2)';
+    const { result, error: advertError } = await db.query(text, [advertOwner.id, advert_ref], 'advert-by-user-and-ref');
+    if (advertError) throw advertError;
+    if (result && result.rows && result.rows[0]) {
+      // TODO: analytics of 'views' per record per visitor per day
+      data = result.rows[0];
+    } else {
+      throw new ErrNotFound('advert not found');
+    }
+
+    if (with_assets && data) {
+      // with side effect on data
+      await find_attach_assets({ user, data: [ data ], parent_entity_kind: _.ENTITY_ASSET_PARENT_KIND.ADVERT });
+    }
+
+    return { data, error };
+  }
+
   const actionsProtected = [
     'signout',
     'user_retrieve_self',
@@ -625,6 +763,7 @@ export function newApi({ config, db, securityMgr }) {
     'usergeo_update',
     'usergeo_update_self',
     'post_create', 'post_update', 'post_delete',
+    'advert_create', 'advert_update', 'advert_delete',
     'article_update',
     'asset_create', 'asset_delete',
     'entity_asset_create', 'entity_asset_delete',
@@ -639,7 +778,16 @@ export function newApi({ config, db, securityMgr }) {
     'usergeo_update_self',
     'usercontact_update_self',
   ];
-  const actionsForOwners = ['post_update', 'article_update', 'asset_delete', 'entity_asset_delete'];
+  const actionsForOwners = [
+    'post_update',
+    'post_delete',
+    'article_update',
+    'article_delete',
+    'asset_delete',
+    'entity_asset_delete',
+    'advert_update',
+    'advert_delete',
+  ];
 
   function _isAllowed({ action = '', user = null, id = null, input = {}, rowFound = null }) {
     let protect = false;
@@ -687,6 +835,14 @@ export function newApi({ config, db, securityMgr }) {
     post_update,
     post_delete,
 
+    advert_create,
+    advert_search,
+    advert_search_by_user,
+    advert_retrieve,
+    advert_retrieve_by_username_and_advert_ref,
+    advert_update,
+    advert_delete,
+
     article_search,
     article_retrieve,
     article_update,
@@ -698,5 +854,52 @@ export function newApi({ config, db, securityMgr }) {
     entity_asset_create,
     entity_asset_search,
     entity_asset_delete,
+  };
+}
+
+async function echo({ input }) {
+  return Promise.resolve({ data: input, error: null });
+}
+
+async function health() {
+  return Promise.resolve({ data: ts(), error: null });
+}
+
+export function normalize(slug = '') {
+  let ref = slug.toLocaleLowerCase();
+  if (ref === '') ref = ts();
+  ref = ref.toLocaleLowerCase().replace(/[^a-z0-9]/g, '-');
+  return ref;
+}
+
+export function makePostRef(post_ref = '') {
+  return normalize(post_ref);
+}
+
+export function makeArticleSlug(slug = '') {
+  return normalize(slug);
+}
+
+export function makeAdvertRef(advert_ref = '') {
+  return normalize(advert_ref);
+}
+
+export function newRow({ user = null, id = newUuid(), dt = new Date(), ...rest }) {
+  const by = user ? { created_by: user.id, updated_by: user.id } : {};
+  return {
+    id,
+    created_at: dt,
+    updated_at: dt,
+    ...by,
+    ...rest,
+  };
+}
+
+export function updateRow({ user = null, dt = new Date(), ...rest }) {
+  const by = user ? { updated_by: user.id } : {};
+  return {
+    updated_at: dt,
+    ...by,
+    ...rest,
   };
 }

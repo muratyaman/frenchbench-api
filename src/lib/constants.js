@@ -9,36 +9,39 @@ export const TBL_ENTITY_ASSET = 'entities_assets';
 export const TBL_LOOKUP       = 'lookups';
 export const TBL_POST         = 'posts';
 export const TBL_ARTICLE      = 'articles';
+export const TBL_ADVERT       = 'adverts';
 
 export const ENTITY_ASSET_PARENT_KIND = {
-  USER: 'users',
-  POST: 'posts',
-  ARTICLE: 'articles',
+  USER: TBL_USER,
+  POST: TBL_POST,
+  ARTICLE: TBL_ARTICLE,
+  ADVERT: TBL_ADVERT,
 };
 
 export const ENTITY_ASSET_PURPOSE = {
   USER_PROFILE_IMAGE: 'user-profile-image',
   POST_IMAGE: 'post-image',
   ARTICLE_IMAGE: 'article-image',
+  ADVERT_IMAGE: 'advert-image',
 };
 
 export const tablesFields = {
   [TBL_USER]: [
     'id', 'username', 'password_hash', 'first_name', 'last_name', 'email', 'headline', 'neighbourhood',
     'lat', 'lon', 'geo_accuracy', 'geo_updated_at', // geolocation tracking
-    'created_at', 'updated_at', // basic audit trail
+    'created_at', 'updated_at', 'created_by', 'updated_by', // audit trail
   ],
   [TBL_ASSET]: [
     'id', 'asset_type', 'media_type', 'label', 'url', 'meta',
-    'created_at', 'updated_at', 'created_by', 'updated_by',
+    'created_at', 'updated_at', 'created_by', 'updated_by', // audit trail
   ],
   [TBL_ENTITY_ASSET]: [
     'id', 'parent_entity_kind', 'parent_entity_id', 'asset_id', 'purpose', 'meta',
-    'created_at', 'updated_at', 'created_by', 'updated_by',
+    'created_at', 'updated_at', 'created_by', 'updated_by', // audit trail
   ],
   [TBL_LOOKUP]: [
     'id', 'category', 'value', 'label', 'meta',
-    'created_at', 'updated_at', 'created_by', 'updated_by',
+    'created_at', 'updated_at', 'created_by', 'updated_by', // audit trail
   ],
   [TBL_POST]: [
     'id', 'user_id', 'post_ref', 'title', 'content', 'tags',
@@ -47,6 +50,12 @@ export const tablesFields = {
   ],
   [TBL_ARTICLE]: [
     'id', 'slug', 'title', 'content', 'keywords',
+    'created_at', 'updated_at', 'created_by', 'updated_by', // audit trail
+  ],
+  [TBL_ADVERT]: [
+    'id', 'user_id', 'advert_ref', 'title', 'content', 'tags',
+    'is_buying', 'is_service', 'price', 'currency', 'price_info', // advert info
+    'lat', 'lon', 'geo_accuracy', 'geo_updated_at', // geolocation tracking
     'created_at', 'updated_at', 'created_by', 'updated_by', // audit trail
   ],
 };
@@ -82,4 +91,28 @@ export const MSG_USERNAME_REQUIRED   = 'username is required';
 export const MSG_POST_NOT_FOUND      = 'post not found';
 export const MSG_USER_NOT_FOUND      = 'user not found';
 export const MSG_ARTICLE_NOT_FOUND   = 'article not found';
+export const MSG_ADVERT_NOT_FOUND    = 'advert not found';
 
+export const CURRENCY_EUR = {
+  code: 'EUR',
+  sign: '€',
+  name: 'Euro',
+};
+
+export const CURRENCY_GBP = {
+  code: 'GBP',
+  sign: '£',
+  name: 'Pound Sterling',
+};
+
+export const CURRENCY_USD = {
+  code: 'USD',
+  sign: '$',
+  name: 'US Dollar',
+};
+
+export const CURRENCY_LIST = [
+  CURRENCY_EUR,
+  CURRENCY_GBP,
+  CURRENCY_USD,
+];

@@ -17,6 +17,8 @@ export const up = knex => {
 
     table.timestamp('created_at', { useTz: true }).notNullable();
     table.timestamp('updated_at', { useTz: true }).notNullable();
+    table.uuid('created_by').nullable();
+    table.uuid('updated_by').nullable();
 
     table.index(['lat', 'lon']);
   });
