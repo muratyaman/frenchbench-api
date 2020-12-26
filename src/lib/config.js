@@ -58,5 +58,18 @@ export function newConfig(penv) {
       latDelta: Number.parseFloat(penv.GEO_LAT_DELTA || '0.01'),
       lonDelta: Number.parseFloat(penv.GEO_LON_DELTA || '0.01'),
     },
+
+    smtp: {
+      transportOptions: {
+        host: penv.SMTP_HOST,
+        port: Number.parseInt(penv.SMTP_PORT || '587'),
+        secure: 0 != Number.parseInt(penv.SMTP_USE_TLS || '0'),
+        auth: {
+          user: penv.SMTP_USER,
+          pass: penv.SMTP_PASSWORD,
+        },
+      },
+      emailFrom: penv.SMTP_EMAIL_FROM,
+    },
   };
 }

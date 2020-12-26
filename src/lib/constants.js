@@ -10,6 +10,8 @@ export const TBL_LOOKUP       = 'lookups';
 export const TBL_POST         = 'posts';
 export const TBL_ARTICLE      = 'articles';
 export const TBL_ADVERT       = 'adverts';
+export const TBL_EMAIL_VERIF  = 'email_verifications';
+export const TBL_PHONE_VERIF  = 'phone_verifications';
 
 export const ENTITY_ASSET_PARENT_KIND = {
   USER: TBL_USER,
@@ -30,6 +32,12 @@ export const tablesFields = {
     'id', 'username', 'password_hash', 'first_name', 'last_name', 'email', 'headline', 'neighbourhood',
     'lat', 'lon', 'geo_accuracy', 'geo_updated_at', // geolocation tracking
     'created_at', 'updated_at', 'created_by', 'updated_by', // audit trail
+  ],
+  [TBL_EMAIL_VERIF]: [
+    'id', 'email', 'code', 'created_at', 'used',
+  ],
+  [TBL_PHONE_VERIF]: [
+    'id', 'phone', 'code', 'created_at', 'used',
   ],
   [TBL_ASSET]: [
     'id', 'asset_type', 'media_type', 'label', 'url', 'meta',

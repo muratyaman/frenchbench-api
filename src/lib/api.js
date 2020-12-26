@@ -1,10 +1,12 @@
 import jwtManager from 'jsonwebtoken';
+import differenceInSeconds from 'date-fns/differenceInSeconds';
 import * as _ from './constants';
 import { ErrBadRequest, ErrForbidden, ErrNotFound, ErrUnauthorized } from './errors';
-import { hash, log, newUuid, ts } from './utils';
+import { hash, log, newUuid, ts, validateEmailAddress, rndEmailVerificationCode } from './utils';
 
-export function newApi({ config, db, securityMgr }) {
+export function newApi({ config, db, securityMgr, emailMgr }) {
 
+  // TODO: captcha
   async function signup({ input }) {
     let data = null, error = null;
     try {
@@ -77,6 +79,67 @@ export function newApi({ config, db, securityMgr }) {
 
   async function signout() {
     return { data: { token: 'x' }, error: null }; // side-effect ==> invalid cookie on browser
+  }
+
+  // TODO: captcha
+  async function verify_email_start({ user, input = {}}) {
+    let data = null, error = null;
+    const { email = '' } = input;
+    while(true) {
+      if (!validateEmailAddress(email)) {
+        error = 'invalid email address'; break;
+      }
+      const code = rndEmailVerificationCode();
+      const id = newUuid();
+      const row = { id, email, code, created_at: new Date(), used: 0 };
+      const { result, error: insertErr } = await db.insert(_.TBL_EMAIL_VERIF, row);
+      if (insertErr) {
+        log('db error in verify_email_start', insertErr);
+        error = 'unexpected error'; break;
+      }
+      data = { id };
+      break; // run once
+    }
+    return { data, error };
+  }
+
+  async function verify_email_finish({ user, input = {}}) {
+    let data = null, error = null;
+    const { email = '', code = '' } = input;
+    while(true) {
+      if (!validateEmailAddress(email)) {
+        error = 'invalid email address or code'; break;
+      }
+      const { result, error: findErr } = await db.find(_.TBL_EMAIL_VERIF, { email, code, used: 0 });
+      if (findErr) {
+        log('db error in verify_email_finish', findErr);
+        error = 'unexpected error'; break;
+      }
+      const { rows = [] } = result;
+      const now = new Date(), found  = false;
+      for (let row of rows) {
+        const delta = differenceInSeconds(now, row.created_at);
+        if (delta < 10 * 60) { // ok, within 10 minutes, not expired
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        error = 'invalid email address or code'; // no clues for hackers ;)
+        break;
+      }
+      // save verified email address in db
+      const change = { email, email_verified: 1 };
+      const { result, error: updateErr } = await db.update(_.TBL_USER, { id: user.id }, change);
+      if (updateErr) {
+        log('db error in verify_email_finish', findErr);
+        error = 'unexpected error';
+        break;
+      }
+      data = { success: true };
+      break; // run once
+    }
+    return { data, error };
   }
 
   // we can use user_retrieve
@@ -764,6 +827,8 @@ export function newApi({ config, db, securityMgr }) {
     'usercontact_update_self',
     'usergeo_update',
     'usergeo_update_self',
+    'verify_email_start',
+    'verify_email_finish',
     'post_create', 'post_update', 'post_delete',
     'advert_create', 'advert_update', 'advert_delete',
     'article_update',
@@ -820,6 +885,9 @@ export function newApi({ config, db, securityMgr }) {
     signout,
     user_retrieve_self,
     me: user_retrieve_self, // alias
+
+    verify_email_start,
+    verify_email_finish,
 
     user_search,
     user_retrieve,

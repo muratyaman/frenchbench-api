@@ -3,6 +3,7 @@ export * from './config';
 export * from './constants';
 export * from './cookies';
 export * from './db';
+export * from './emails';
 export * from './errors';
 export * from './files';
 export * from './security';
