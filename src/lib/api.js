@@ -97,7 +97,18 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
         log('db error in verify_email_start', insertErr);
         error = 'unexpected error'; break;
       }
-      data = { id };
+      const msgObj = {
+        to: email,
+        subject: 'Email verification for FrenchBench.org',
+        text: 'Please use this code to verify that you own the email address: ' + code,
+        html: 'Please use this code to verify that you own the email address: ' + code, // TODO: beautiful email needed
+      }
+      const emailResult = await emailMgr.sendEmail(msgObj);
+      if (emailResult && emailResult.messageId) {
+        data = { id, message_id: emailResult.messageId };
+      } else {
+        error = 'failed to send email'; break;
+      }
       break; // run once
     }
     return { data, error };
