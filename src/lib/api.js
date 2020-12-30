@@ -141,7 +141,7 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
       }
       // save verified email address in db
       const change = { email, email_verified: 1 };
-      const { result, error: updateErr } = await db.update(_.TBL_USER, { id: user.id }, change);
+      const { result: resultUpdate, error: updateErr } = await db.update(_.TBL_USER, { id: user.id }, change);
       if (updateErr) {
         log('db error in verify_email_finish', findErr);
         error = 'unexpected error';
@@ -253,8 +253,6 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
     let { result, error } = await db.update(_.TBL_USER, condition, change, 1);
     return { data: result && result.rowCount, error };
   }
-
-
 
   async function post_create({ user, input }) {
     if (!user) throw new ErrForbidden();
