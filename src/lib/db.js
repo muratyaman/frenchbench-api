@@ -25,6 +25,13 @@ export function newDb({ pool }) {
     return { result, error };
   }
 
+  async function queryMeta(text, values = [], name = null) {
+    const counter = `SELECT COUNT(q.*) AS row_count FROM (${text}) q`;
+    const { result, error } = await query(counter, values, name);
+    const row0 = result && result.rows && result.rows[0] ? result.rows[0] : {};
+    return { error, ...row0 };
+  }
+
   async function now() {
     return query('SELECT NOW() AS ts');
   }
@@ -123,6 +130,7 @@ export function newDb({ pool }) {
 
   return {
     query,
+    queryMeta,
     find,
     insert,
     update,

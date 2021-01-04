@@ -328,12 +328,20 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
   }
 
   async function post_search({ user, input }) {
-    let data = [], error = null, ph = '';
-    let { q = '', tag = '', offset = 0, limit = 10, with_assets = false } = input;
+    let data = [], meta = {}, error = null, ph = '';
+    let { user_id = null, username = null, q = '', tag = '', offset = 0, limit = 10, with_assets = false } = input;
     offset = Number.parseInt(offset);
     limit = Number.parseInt(limit);
     if (100 < limit) limit = 100;
     const conditions = [], params = [];
+    if (user_id) {
+      params.push(user_id);
+      conditions.push('p.user_id = ' + db.placeHolder(params.length));
+    }
+    if (username) {
+      params.push(username);
+      conditions.push('u.username = ' + db.placeHolder(params.length));
+    }
     if (q !== '') {
       params.push(`%${q}%`);
       ph = db.placeHolder(params.length); // TODO: use fulltext search
@@ -344,63 +352,41 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
       conditions.push('p.tags LIKE ' + db.placeHolder(params.length));
     }
     const whereStr = conditions.length ? ` WHERE (${conditions.join(') AND (')})` : '';
+    
+    const paramsNoPagination = [...params];
+
     params.push(offset);
     const offsetStr = ' OFFSET ' + db.placeHolder(params.length);
     params.push(limit);
     const limitStr = ' LIMIT ' + db.placeHolder(params.length);
-    const text = 'SELECT p.id, p.post_ref, p.title, p.tags, p.created_at, u.username FROM ' + _.TBL_POST + ' p'
-      + ' INNER JOIN ' + _.TBL_USER + ' u ON p.user_id = u.id'
+
+    const textNoPagination = 'SELECT p.id, p.post_ref, p.title, p.tags, p.created_at, p.user_id, u.username '
+      + 'FROM ' + _.TBL_POST + ' p '
+      + 'INNER JOIN ' + _.TBL_USER + ' u ON p.user_id = u.id '
       + whereStr
-      + ' ORDER BY p.created_at DESC' // TODO: ranking, relevance
-      + offsetStr
-      + limitStr;
-    const { result, error: findError } = await db.query(text, params, 'posts-text-search-' + hash(text));
+      + ' ORDER BY p.created_at DESC'; // TODO: ranking, relevance
+    
+    const text = textNoPagination + offsetStr + limitStr;
+    const qryName = 'posts-text-search-' + hash(text);
+    const { result, error: findError } = await db.query(text, params, );
     if (findError) throw findError;
     data = result && result.rows ? result.rows : [];
     console.log('found ' + data.length + ' rows');
 
+    meta = await db.queryMeta(textNoPagination, paramsNoPagination, 'meta-' + qryName);
+
     if (with_assets && data.length) {
       // with side effect on data
       await find_attach_assets({ user, data, parent_entity_kind: _.ENTITY_ASSET_PARENT_KIND.POST });
     }
 
-    return { data, error };
+    return { data, meta, error };
   }
 
   async function post_search_by_user({ user, input = {} }) {
-    let data = [], error = null;
-    let { user_id = null, username = null, q = '', offset = 0, limit = 10, with_assets = false } = input;
-    offset = Number.parseInt(offset);
-    limit = Number.parseInt(limit);
-    if (100 < limit) limit = 100;
-    if (!user_id && username) {
-      const { row: postOwner, error: userError } = await db.find(_.TBL_USER, { username }, 1);
-      if (userError) throw userError;
-      if (!postOwner) throw new ErrNotFound(_.MSG_USER_NOT_FOUND);
-      user_id = postOwner.id;
-    }
-    if (user_id && !username) {
-      const { row: postOwner2, error: userError2 } = await db.find(_.TBL_USER, { id: user_id }, 1);
-      if (userError2) throw userError2;
-      if (!postOwner2) throw new ErrNotFound('user not found');
-      username = postOwner2.username;
-    }
-    if (!user_id) throw new ErrBadRequest('user_id or username is required');
-    const text = 'SELECT id, post_ref, title, tags, created_at FROM ' + _.TBL_POST
-      + ' WHERE user_id = $1'
-      + ' ORDER BY created_at DESC'
-      + ' OFFSET $2'
-      + ' LIMIT $3';
-    const { result, error: findError } = await db.query(text, [user_id, offset, limit], 'posts-by-user');
-    if (findError) throw findError;
-    data = result && result.rows ? result.rows.map(row => ({ ...row, username })) : []; // enrich with username
-
-    if (with_assets && data.length) {
-      // with side effect on data
-      await find_attach_assets({ user, data, parent_entity_kind: _.ENTITY_ASSET_PARENT_KIND.POST });
-    }
-
-    return { data, error };
+    // keeping this function for convenience
+    // search by user_id/username included in post_search()
+    return post_search({ user, input });
   }
 
   // use retrieve_post(), it is faster
@@ -714,14 +700,22 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
   }
 
   async function advert_search({ user, input }) {
-    let data = [], error = null, ph = '';
-    let { q = '', tag = '', min_price = -1, max_price = -1, offset = 0, limit = 10, with_assets = false } = input;
+    let data = [], meta = null, error = null, ph = '';
+    let { user_id = null, username = null, q = '', tag = '', min_price = -1, max_price = -1, offset = 0, limit = 10, with_assets = false } = input;
     min_price = Number.parseInt(min_price);
     max_price = Number.parseInt(max_price);
     offset = Number.parseInt(offset);
     limit = Number.parseInt(limit);
     if (100 < limit) limit = 100;
     const conditions = [], params = [];
+    if (user_id) {
+      params.push(user_id);
+      conditions.push('a.user_id = ' + db.placeHolder(params.length));
+    }
+    if (username) {
+      params.push(username);
+      conditions.push('u.username = ' + db.placeHolder(params.length));
+    }
     if (q !== '') {
       params.push(`%${q}%`);
       ph = db.placeHolder(params.length); // TODO: use fulltext search
@@ -740,64 +734,39 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
       conditions.push('a.price <= ' + db.placeHolder(params.length));
     }
     const whereStr = conditions.length ? ` WHERE (${conditions.join(') AND (')})` : '';
+    
+    const paramsNoPagination = [...params];
+
     params.push(offset);
     const offsetStr = ' OFFSET ' + db.placeHolder(params.length);
     params.push(limit);
     const limitStr = ' LIMIT ' + db.placeHolder(params.length);
-    const text = 'SELECT a.id, a.advert_ref, a.title, a.tags, '
-      + 'a.is_buying, a.is_service, a.price, a.currency, a.created_at, u.username FROM ' + _.TBL_ADVERT + ' a'
+    const textNoPagination = 'SELECT a.id, a.advert_ref, a.title, a.tags, '
+      + 'a.is_buying, a.is_service, a.price, a.currency, a.created_at, a.user_id, u.username FROM ' + _.TBL_ADVERT + ' a'
       + ' INNER JOIN ' + _.TBL_USER + ' u ON a.user_id = u.id'
       + whereStr
-      + ' ORDER BY a.created_at DESC' // TODO: ranking, relevance
-      + offsetStr
-      + limitStr;
+      + ' ORDER BY a.created_at DESC'; // TODO: ranking, relevance
+    
+    const text = textNoPagination + offsetStr + limitStr;
     const { result, error: findError } = await db.query(text, params, 'adverts-text-search-' + hash(text));
     if (findError) throw findError;
     data = result && result.rows ? result.rows : [];
     console.log('found ' + data.length + ' rows');
 
+    meta = await db.queryMeta(textNoPagination, paramsNoPagination, 'meta-' + qryName);
+
     if (with_assets && data.length) {
       // with side effect on data
       await find_attach_assets({ user, data, parent_entity_kind: _.ENTITY_ASSET_PARENT_KIND.ADVERT });
     }
 
-    return { data, error };
+    return { data, meta, error };
   }
 
   async function advert_search_by_user({ user, input = {} }) {
-    let data = [], error = null;
-    let { user_id = null, username = null, q = '', offset = 0, limit = 10, with_assets = false } = input;
-    offset = Number.parseInt(offset);
-    limit = Number.parseInt(limit);
-    if (100 < limit) limit = 100;
-    if (!user_id && username) {
-      const { row: advertOwner, error: userError } = await db.find(_.TBL_USER, { username }, 1);
-      if (userError) throw userError;
-      if (!advertOwner) throw new ErrNotFound(_.MSG_USER_NOT_FOUND);
-      user_id = advertOwner.id;
-    }
-    if (user_id && !username) {
-      const { row: advertOwner2, error: userError2 } = await db.find(_.TBL_USER, { id: user_id }, 1);
-      if (userError2) throw userError2;
-      if (!advertOwner2) throw new ErrNotFound('user not found');
-      username = advertOwner2.username;
-    }
-    if (!user_id) throw new ErrBadRequest('user_id or username is required');
-    const text = 'SELECT id, advert_ref, title, tags, is_buying, is_service, price, currency, created_at FROM ' + _.TBL_ADVERT
-      + ' WHERE user_id = $1'
-      + ' ORDER BY created_at DESC'
-      + ' OFFSET $2'
-      + ' LIMIT $3';
-    const { result, error: findError } = await db.query(text, [user_id, offset, limit], 'adverts-by-user');
-    if (findError) throw findError;
-    data = result && result.rows ? result.rows.map(row => ({ ...row, username })) : []; // enrich with username
-
-    if (with_assets && data.length) {
-      // with side effect on data
-      await find_attach_assets({ user, data, parent_entity_kind: _.ENTITY_ASSET_PARENT_KIND.ADVERT });
-    }
-
-    return { data, error };
+    // keeping this function for convenience
+    // search by user_id/username included in advert_search()
+    return advert_search({ user, input });
   }
 
   // use retrieve_advert(), it is faster
