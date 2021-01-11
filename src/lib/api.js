@@ -748,7 +748,8 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
       + ' ORDER BY a.created_at DESC'; // TODO: ranking, relevance
     
     const text = textNoPagination + offsetStr + limitStr;
-    const { result, error: findError } = await db.query(text, params, 'adverts-text-search-' + hash(text));
+    const qryName = 'adverts-text-search-' + hash(text);
+    const { result, error: findError } = await db.query(text, params, qryName);
     if (findError) throw findError;
     data = result && result.rows ? result.rows : [];
     console.log('found ' + data.length + ' rows');
