@@ -12,8 +12,9 @@ export function makeApiUploadHandler({ fileMgr, securityMgr }) {
     let data = null, error = null;
     try {
 
-      const user = securityMgr.getSessionUser(req);
+      const { user = null, error: tokenError = null } = securityMgr.getSessionUser(req);
       if (!user) { // require a valid JWT cookie
+        if (tokenError) throw new ErrUnauthorized(tokenError);
         throw new ErrUnauthorized();
       }
 

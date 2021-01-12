@@ -82,7 +82,7 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
   }
 
   // TODO: captcha
-  async function verify_email_start({ user, input = {}}) {
+  async function verify_email_start({ user, input = { email: '' }}) {
     let data = null, error = null;
     const { email = '' } = input;
     while(true) {
@@ -114,8 +114,8 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
     return { data, error };
   }
 
-  async function verify_email_finish({ user, input = {}}) {
-    let data = null, error = null;
+  async function verify_email_finish({ user, input = { email: '', code: '' }}) {
+    let data = null, error = null, found = false;
     const { email = '', code = '' } = input;
     while(true) {
       if (!validateEmailAddress(email)) {
@@ -127,7 +127,7 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
         error = 'unexpected error'; break;
       }
       const { rows = [] } = result;
-      const now = new Date(), found  = false;
+      const now = new Date();
       for (let row of rows) {
         const delta = differenceInSeconds(now, row.created_at);
         if (delta < 10 * 60) { // ok, within 10 minutes, not expired
@@ -154,9 +154,9 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
   }
 
   // we can use user_retrieve
-  async function user_retrieve_self({ user = {} }) {
-    const { id = null } = user ?? {};
-    if (id) {
+  async function user_retrieve_self({ user = { id: '' } }) {
+    const { id = '' } = user ?? {};
+    if (id && (id !== '')) {
       const { row, error } = await db.find(_.TBL_USER, { id }, 1);
       const data = securityMgr.hideSensitiveUserProps(row);
       return { data, error };
@@ -177,11 +177,11 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
     return { data, error };
   }
 
-  async function user_retrieve_by_username({ user, input = {} }) {
+  async function user_retrieve_by_username({ user, input = { username: '' } }) {
     let data = null, error = null;
     // TODO: analytics of 'views' per record per visitor per day
-    const { username = null } = input;
-    if (!username) throw new ErrBadRequest(_.MSG_USERNAME_REQUIRED);
+    const { username = '' } = input;
+    if (!username || (username === '')) throw new ErrBadRequest(_.MSG_USERNAME_REQUIRED);
     const condition = { username };
     const { row, error: findUserError } = await db.find(_.TBL_USER, condition, 1);
     if (findUserError) throw findUserError;
@@ -189,7 +189,7 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
     return { data, error };
   }
 
-  async function user_search({ user, input = {} }) {
+  async function user_search({ user, input = { lat1: 0, lon1: 0, lat2: 0, lon2: 0, with_assets: false } }) {
     let data = [], error = null;
     let { lat1 = 0, lon1 = 0, lat2 = 0, lon2 = 0, with_assets = false } = input;
     // TODO: restrict area that can be searched e.g. by geolocation of current user
@@ -390,7 +390,7 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
   }
 
   // use retrieve_post(), it is faster
-  async function post_retrieve_by_username_and_post_ref({ user, input = {} }) {
+  async function post_retrieve_by_username_and_post_ref({ user, input = { username: '', post_ref: '', with_assets: false } }) {
     let data = null, error = null;
     let { username = '', post_ref = '', with_assets = false } = input;
     username = username.toLowerCase();
@@ -444,11 +444,11 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
     return { data, error };
   }
 
-  async function article_retrieve({ user, id = null, input = {} }) {
+  async function article_retrieve({ user, id = null, input = { slug: '', with_assets: false} }) {
     // TODO: validate uuid
     // TODO: analytics of 'views' per record per visitor per day
-    const { slug = null, with_assets = false } = input;
-    if (id || slug) {
+    const { slug = '', with_assets = false } = input;
+    if ((id && (id !== '')) || (slug && (slug !== ''))) {
       const condition = id ? { id } : { slug };
       const { row: data, error } = await db.find(_.TBL_ARTICLE, condition, 1);
 
@@ -517,7 +517,7 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
       + ' ORDER BY a.created_at DESC' // TODO: ranking, relevance
       + offsetStr
       + limitStr;
-    const preparedQryName = 'asset-search-' + md5(text);
+    const preparedQryName = 'asset-search-' + hash(text);
     const { result, error: findError } = await db.query(text, params, preparedQryName);
     if (findError) throw findError;
     data = result && result.rows ? result.rows : [];
@@ -771,7 +771,7 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
   }
 
   // use retrieve_advert(), it is faster
-  async function advert_retrieve_by_username_and_advert_ref({ user, input = {} }) {
+  async function advert_retrieve_by_username_and_advert_ref({ user, input = { username: '', advert_ref: '', with_assets: false } }) {
     let data = null, error = null;
     let { username = '', advert_ref = '', with_assets = false } = input;
     username = username.toLowerCase();
@@ -801,6 +801,7 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
 
   const actionsProtected = [
     'signout',
+    'me',
     'user_retrieve_self',
     'usercontact_update',
     'usercontact_update_self',
@@ -835,11 +836,14 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
     'advert_delete',
   ];
 
-  function _isAllowed({ action = '', user = null, id = null, input = {}, rowFound = null }) {
+  function _isAllowed({ action = '', user = null, id = null, input = {}, rowFound = null, tokenError = null }) {
     let protect = false;
     if (actionsProtected.includes(action)) {
       protect = true;
-      if (!user) throw new ErrUnauthorized(); // early decision
+      if (!user) { // required: user { id }
+        if (tokenError) throw new ErrUnauthorized(tokenError);
+        throw new ErrUnauthorized(); // early decision
+      }
     }
     if (protect && actionsForUser.includes(action)) { // extra check
       if (user.id !== id) throw new ErrForbidden();

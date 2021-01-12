@@ -1,5 +1,5 @@
 export class ErrBadRequest extends Error {
-  constructor(message = 'Bad Request') {
+  constructor(message = 'bad_request') {
     super(message);
     this.name = this.constructor.name;
     //this.statusCode = 400;
@@ -7,7 +7,7 @@ export class ErrBadRequest extends Error {
 }
 
 export class ErrUnauthorized extends Error {
-  constructor(message = 'Unauthorized') {
+  constructor(message = 'unauthorized') {
     super(message);
     this.name = this.constructor.name;
     //this.statusCode = 401;
@@ -15,7 +15,7 @@ export class ErrUnauthorized extends Error {
 }
 
 export class ErrForbidden extends Error {
-  constructor(message = 'Forbidden') {
+  constructor(message = 'forbidden') {
     super(message);
     this.name = this.constructor.name;
     //this.statusCode = 403;
@@ -23,7 +23,15 @@ export class ErrForbidden extends Error {
 }
 
 export class ErrNotFound extends Error {
-  constructor(message = 'Not Found') {
+  constructor(message = 'not_found') {
+    super(message);
+    this.name = this.constructor.name;
+    this.statusCode = 404;
+  }
+}
+
+export class ErrUnknownAction extends Error {
+  constructor(message = 'unknown_action') {
     super(message);
     this.name = this.constructor.name;
     this.statusCode = 404;

@@ -6,7 +6,7 @@ import { log } from './utils';
 export function newSecurityMgr({ config, cookieMgr }) {
 
   function getSessionUser(req) {
-    let user = null;
+    let user = null, error = null;
     try { // do we have a user session?
       let token = null, tokenType = null;
       const { cookie = null, authorization = null } = req.headers;
@@ -24,9 +24,10 @@ export function newSecurityMgr({ config, cookieMgr }) {
         user = decoded;
       }
     } catch (jwtError) {
+      error = jwtError.message;
       log(req.id, 'token error', jwtError.message);
     }
-    return user;
+    return { user, error };
   }
 
   /**

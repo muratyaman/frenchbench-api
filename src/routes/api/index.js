@@ -1,4 +1,4 @@
-import { log, newUuid } from '../../lib';
+import { ErrUnauthorized, ErrUnknownAction, log, newUuid } from '../../lib';
 
 export function makeApiHandler({ api, config, cookieMgr, db, securityMgr }) {
 
@@ -8,7 +8,7 @@ export function makeApiHandler({ api, config, cookieMgr, db, securityMgr }) {
     req.id = newUuid();
 
     log(req.id, 'request START');
-    let output = null, user = null;
+    let output = null, token = null;
     
     try {
       
@@ -17,26 +17,37 @@ export function makeApiHandler({ api, config, cookieMgr, db, securityMgr }) {
         log(req.id, 'db now', now);
       }
 
-      user = securityMgr.getSessionUser(req);
+      const { user, error: tokenError } = securityMgr.getSessionUser(req);
 
       const { action = '', id = null, input = {} } = req.body;
 
       if (action && (action !== '_isAllowed') && (action in api)) {
-        api._isAllowed({ action, user, id, input });
+        try {
+          api._isAllowed({ action, user, id, input, tokenError }); // will throw error
+        } catch (err) {
+          if (err instanceof ErrUnauthorized) {
+            token = '.'; // invalidate cookie
+            throw err;
+          }
+        }
       } else {
-        throw Error('invalid api action');
+        throw new ErrUnknownAction();
       }
 
       output = await api[action]({ user, id, input }); // run api action
 
       if (output && output.data && output.data.token) { // special case
-        const cookieStr = cookieMgr.serialize(output.data.token);
-        res.setHeader('Set-Cookie', cookieStr); // keep auth token as cookie on frontend
+        token = output.data.token;
       }
 
     } catch (err) {
       log(req.id, 'error', err);
       output = { error: err.message };
+    }
+
+    if (token) {
+      const cookieStr = cookieMgr.serialize(token);
+      res.setHeader('Set-Cookie', cookieStr); // keep auth token as cookie on frontend
     }
 
     const t2 = new Date();
