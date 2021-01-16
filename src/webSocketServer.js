@@ -57,7 +57,7 @@ export async function newWebSocketServer({ config, securityMgr, api }) {
 
   function onHttpUpgrade(request, socket, head) {
     console.log('onHttpUpgrade');
-    const user = securityMgr.getSessionUser(request);
+    const { user, error } = securityMgr.getSessionUser(request);
     console.log('onHttpUpgrade user', user);
     if (!user) {
       console.log('no user!');
