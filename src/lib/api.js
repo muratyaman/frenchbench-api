@@ -360,7 +360,7 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
     params.push(limit);
     const limitStr = ' LIMIT ' + db.placeHolder(params.length);
 
-    const textNoPagination = 'SELECT p.id, p.post_ref, p.title, p.tags, p.created_at, p.user_id, u.username '
+    const textNoPagination = 'SELECT p.id, p.post_ref, p.title, p.tags, p.created_at, p.created_by, p.user_id, u.username '
       + 'FROM ' + _.TBL_POST + ' p '
       + 'INNER JOIN ' + _.TBL_USER + ' u ON p.user_id = u.id '
       + whereStr

@@ -33,8 +33,10 @@ export async function newHttpServer(penv) {
   expressApp.post('/api/upload', makeApiUploadHandler({ fileMgr, securityMgr }));
   expressApp.post('/api',        makeApiHandler({ api, config, cookieMgr, db, securityMgr }));
 
-  expressApp.get('/api/health', (req, res) => res.json({ ts: new Date() }));
-  expressApp.get('/api',        (req, res) => res.json({ ts: new Date() }));
+  const health = (req, res) => res.json({ ts: new Date() });
+  expressApp.get('/api/health', health);
+  expressApp.get('/api', health);
+  expressApp.get('/', health);
 
   const httpServer = createServer(expressApp);
 

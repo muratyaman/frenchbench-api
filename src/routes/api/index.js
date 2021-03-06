@@ -7,7 +7,7 @@ export function makeApiHandler({ api, config, cookieMgr, db, securityMgr }) {
     
     req.id = newUuid();
 
-    log(req.id, 'request START');
+    log(req.id, 'request START', req.body);
     let output = null, token = null;
     
     try {
