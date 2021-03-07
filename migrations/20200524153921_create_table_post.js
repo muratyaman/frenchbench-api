@@ -8,7 +8,7 @@ export const up = knex => {
       .references('id').inTable(TBL_USER)
       .onDelete('cascade');
 
-    table.string('post_ref', 100).notNullable();
+    table.string('slug', 100).notNullable();
     table.text('title').notNullable();
     table.text('content').notNullable();
     table.text('tags').nullable();
@@ -18,7 +18,7 @@ export const up = knex => {
     table.uuid('created_by').nullable();
     table.uuid('updated_by').nullable();
 
-    table.unique(['user_id', 'post_ref']);
+    table.unique(['user_id', 'slug']);
   });
 };
 

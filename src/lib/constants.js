@@ -52,7 +52,7 @@ export const tablesFields = {
     'created_at', 'updated_at', 'created_by', 'updated_by', // audit trail
   ],
   [TBL_POST]: [
-    'id', 'user_id', 'post_ref', 'title', 'content', 'tags',
+    'id', 'user_id', 'slug', 'title', 'content', 'tags',
     'lat', 'lon', 'geo_accuracy', 'geo_updated_at', // geolocation tracking
     'created_at', 'updated_at', 'created_by', 'updated_by', // audit trail
   ],
@@ -61,7 +61,7 @@ export const tablesFields = {
     'created_at', 'updated_at', 'created_by', 'updated_by', // audit trail
   ],
   [TBL_ADVERT]: [
-    'id', 'user_id', 'advert_ref', 'title', 'content', 'tags',
+    'id', 'user_id', 'slug', 'title', 'content', 'tags',
     'is_buying', 'is_service', 'price', 'currency', 'price_info', // advert info
     'lat', 'lon', 'geo_accuracy', 'geo_updated_at', // geolocation tracking
     'created_at', 'updated_at', 'created_by', 'updated_by', // audit trail

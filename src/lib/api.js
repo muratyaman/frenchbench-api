@@ -257,15 +257,15 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
   async function post_create({ user, input }) {
     if (!user) throw new ErrForbidden();
 
-    let { post_ref = '', title = '', content = '', tags = '', asset_id = null, lat = 0, lon = 0, geo_accuracy = 9999 } = input;
+    let { slug = '', title = '', content = '', tags = '', asset_id = null, lat = 0, lon = 0, geo_accuracy = 9999 } = input;
     const now = new Date();
     const id = newUuid();
     if (!title) title = 'my post';
-    if (!post_ref) post_ref = title + now.toISOString();
-    post_ref = makePostRef(post_ref);
+    if (!slug) slug = title + now.toISOString();
+    slug = makePostRef(slug);
     const row = newRow({
       id, user_id: user.id, user,
-      post_ref, title, content, tags,
+      slug, title, content, tags,
       lat, lon, geo_accuracy, geo_updated_at: now,
     });
     const { result, error } = await db.insert(_.TBL_POST, row);
@@ -298,7 +298,7 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
   async function post_update({ user, id, input }) {
     let error = null;
 
-    let { post_ref, title, content, tags, lat = 0, lon = 0, geo_accuracy = 9999 } = input;
+    let { slug, title, content, tags, lat = 0, lon = 0, geo_accuracy = 9999 } = input;
     const now = new Date();
 
     const { row: postFound, error: findPostErr } = await db.find(_.TBL_POST, { id }, 1);
@@ -307,11 +307,11 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
     if (postFound.user_id !== user.id) throw new ErrForbidden(); // TODO: we can use postFound.created_by
 
     if (!title) title = 'my post at ' + now.toISOString();
-    if (!post_ref) post_ref = title;
-    post_ref = makePostRef(post_ref);
+    if (!slug) slug = title;
+    slug = makePostRef(slug);
     let change = updateRow({
       user,
-      post_ref, title, content, tags,
+      slug, title, content, tags,
       lat, lon, geo_accuracy,
     });
     let { result, error: updatePostError } = await db.update(_.TBL_POST, { id }, change, 1);
@@ -360,7 +360,7 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
     params.push(limit);
     const limitStr = ' LIMIT ' + db.placeHolder(params.length);
 
-    const textNoPagination = 'SELECT p.id, p.post_ref, p.title, p.tags, p.created_at, p.created_by, p.user_id, u.username '
+    const textNoPagination = 'SELECT p.id, p.slug, p.title, p.tags, p.created_at, p.created_by, p.user_id, u.username '
       + 'FROM ' + _.TBL_POST + ' p '
       + 'INNER JOIN ' + _.TBL_USER + ' u ON p.user_id = u.id '
       + whereStr
@@ -390,18 +390,18 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
   }
 
   // use retrieve_post(), it is faster
-  async function post_retrieve_by_username_and_post_ref({ user, input = { username: '', post_ref: '', with_assets: false } }) {
+  async function post_retrieve_by_username_and_slug({ user, input = { username: '', slug: '', with_assets: false } }) {
     let data = null, error = null;
-    let { username = '', post_ref = '', with_assets = false } = input;
+    let { username = '', slug = '', with_assets = false } = input;
     username = username.toLowerCase();
-    post_ref = post_ref.toLowerCase();
+    slug = slug.toLowerCase();
     const { row: postOwner, error: userError } = await db.find(_.TBL_USER, { username }, 1);
     if (userError) throw userError;
     if (!postOwner) throw new ErrNotFound('user not found');
 
     const text = 'SELECT * FROM ' + _.TBL_POST
-      + ' WHERE (user_id = $1) AND (post_ref = $2)';
-    const { result, error: postError } = await db.query(text, [postOwner.id, post_ref], 'post-by-user-and-ref');
+      + ' WHERE (user_id = $1) AND (slug = $2)';
+    const { result, error: postError } = await db.query(text, [postOwner.id, slug], 'post-by-user-and-ref');
     if (postError) throw postError;
     if (result && result.rows && result.rows[0]) {
       // TODO: analytics of 'views' per record per visitor per day
@@ -621,18 +621,18 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
     if (!user) throw new ErrForbidden();
 
     let {
-      advert_ref = '', title = '', content = '', tags = '', asset_id = null,
+      slug = '', title = '', content = '', tags = '', asset_id = null,
       is_buying = 0, is_service = 0, price = 0, currency = 'GBP',
       lat = 0, lon = 0, geo_accuracy = 9999,
     } = input;
     const now = new Date();
     const id = newUuid();
     if (!title) title = 'my advert';
-    if (!advert_ref) advert_ref = title + now.toISOString();
-    advert_ref = makePostRef(advert_ref);
+    if (!slug) slug = title + now.toISOString();
+    slug = makePostRef(slug);
     const row = newRow({
       id, user_id: user.id, user,
-      advert_ref, title, content, tags,
+      slug, title, content, tags,
       is_buying, is_service, price, currency,
       lat, lon, geo_accuracy, geo_updated_at: now,
     });
@@ -667,7 +667,7 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
     let error = null;
 
     let {
-      advert_ref, title, content, tags,
+      slug, title, content, tags,
       is_buying = 0, is_service = 0, price = 0, currency = 'GBP',
       lat = 0, lon = 0, geo_accuracy = 9999,
     } = input;
@@ -679,10 +679,10 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
     if (advertFound.user_id !== user.id) throw new ErrForbidden(); // TODO: we can use postFound.created_by
 
     if (!title) title = 'my advert at ' + now.toISOString();
-    if (!advert_ref) advert_ref = title;
-    advert_ref = makePostRef(advert_ref);
+    if (!slug) slug = title;
+    slug = makeAdvertRef(slug);
     let change = updateRow({
-      user, advert_ref, title, content, tags,
+      user, slug, title, content, tags,
       is_buying, is_service, price, currency,
       lat, lon, geo_accuracy,
     });
@@ -741,7 +741,7 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
     const offsetStr = ' OFFSET ' + db.placeHolder(params.length);
     params.push(limit);
     const limitStr = ' LIMIT ' + db.placeHolder(params.length);
-    const textNoPagination = 'SELECT a.id, a.advert_ref, a.title, a.tags, '
+    const textNoPagination = 'SELECT a.id, a.slug, a.title, a.tags, '
       + 'a.is_buying, a.is_service, a.price, a.currency, a.created_at, a.user_id, u.username FROM ' + _.TBL_ADVERT + ' a'
       + ' INNER JOIN ' + _.TBL_USER + ' u ON a.user_id = u.id'
       + whereStr
@@ -771,18 +771,18 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
   }
 
   // use retrieve_advert(), it is faster
-  async function advert_retrieve_by_username_and_advert_ref({ user, input = { username: '', advert_ref: '', with_assets: false } }) {
+  async function advert_retrieve_by_username_and_slug({ user, input = { username: '', slug: '', with_assets: false } }) {
     let data = null, error = null;
-    let { username = '', advert_ref = '', with_assets = false } = input;
+    let { username = '', slug = '', with_assets = false } = input;
     username = username.toLowerCase();
-    advert_ref = advert_ref.toLowerCase();
+    slug = slug.toLowerCase();
     const { row: advertOwner, error: userError } = await db.find(_.TBL_USER, { username }, 1);
     if (userError) throw userError;
     if (!advertOwner) throw new ErrNotFound('user not found');
 
     const text = 'SELECT * FROM ' + _.TBL_ADVERT
-      + ' WHERE (user_id = $1) AND (advert_ref = $2)';
-    const { result, error: advertError } = await db.query(text, [advertOwner.id, advert_ref], 'advert-by-user-and-ref');
+      + ' WHERE (user_id = $1) AND (slug = $2)';
+    const { result, error: advertError } = await db.query(text, [advertOwner.id, slug], 'advert-by-user-and-ref');
     if (advertError) throw advertError;
     if (result && result.rows && result.rows[0]) {
       // TODO: analytics of 'views' per record per visitor per day
@@ -884,7 +884,7 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
     post_search,
     post_search_by_user,
     post_retrieve,
-    post_retrieve_by_username_and_post_ref,
+    post_retrieve_by_username_and_slug,
     post_update,
     post_delete,
 
@@ -892,7 +892,7 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
     advert_search,
     advert_search_by_user,
     advert_retrieve,
-    advert_retrieve_by_username_and_advert_ref,
+    advert_retrieve_by_username_and_slug,
     advert_update,
     advert_delete,
 
@@ -925,16 +925,16 @@ export function normalize(slug = '') {
   return ref;
 }
 
-export function makePostRef(post_ref = '') {
-  return normalize(post_ref);
+export function makePostRef(slug = '') {
+  return normalize(slug);
 }
 
 export function makeArticleSlug(slug = '') {
   return normalize(slug);
 }
 
-export function makeAdvertRef(advert_ref = '') {
-  return normalize(advert_ref);
+export function makeAdvertRef(slug = '') {
+  return normalize(slug);
 }
 
 export function newRow({ user = null, id = newUuid(), dt = new Date(), ...rest }) {
