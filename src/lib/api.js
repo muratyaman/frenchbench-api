@@ -85,7 +85,7 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
   async function verify_email_start({ user, input = { email: '' }}) {
     let data = null, error = null;
     const { email = '' } = input;
-    while(true) {
+    while(!data) {
       if (!validateEmailAddress(email)) {
         error = 'invalid email address'; break;
       }
@@ -117,7 +117,7 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
   async function verify_email_finish({ user, input = { email: '', code: '' }}) {
     let data = null, error = null, found = false;
     const { email = '', code = '' } = input;
-    while(true) {
+    while(!found) {
       if (!validateEmailAddress(email)) {
         error = 'invalid email address or code'; break;
       }
@@ -360,18 +360,22 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
     params.push(limit);
     const limitStr = ' LIMIT ' + db.placeHolder(params.length);
 
-    const textNoPagination = 'SELECT p.id, p.slug, p.title, p.tags, p.created_at, p.created_by, p.user_id, u.username '
-      + 'FROM ' + _.TBL_POST + ' p '
-      + 'INNER JOIN ' + _.TBL_USER + ' u ON p.user_id = u.id '
-      + whereStr
-      + ' ORDER BY p.created_at DESC'; // TODO: ranking, relevance
+    const textNoPagination = `
+SELECT
+  p.id, p.slug, p.title, p.tags, p.created_at,
+  p.created_by, p.user_id, u.username,
+  p.lat, p.lon, p.geo_accuracy
+FROM ${_.TBL_POST} p
+INNER JOIN ${_.TBL_USER} u ON p.user_id = u.id
+${whereStr}
+ORDER BY p.created_at DESC
+`; // TODO: ranking, relevance
     
     const text = textNoPagination + offsetStr + limitStr;
     const qryName = 'posts-text-search-' + hash(text);
     const { result, error: findError } = await db.query(text, params, );
     if (findError) throw findError;
     data = result && result.rows ? result.rows : [];
-    console.log('found ' + data.length + ' rows');
 
     meta = await db.queryMeta(textNoPagination, paramsNoPagination, 'meta-' + qryName);
 
@@ -741,18 +745,24 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
     const offsetStr = ' OFFSET ' + db.placeHolder(params.length);
     params.push(limit);
     const limitStr = ' LIMIT ' + db.placeHolder(params.length);
-    const textNoPagination = 'SELECT a.id, a.slug, a.title, a.tags, '
-      + 'a.is_buying, a.is_service, a.price, a.currency, a.created_at, a.user_id, u.username FROM ' + _.TBL_ADVERT + ' a'
-      + ' INNER JOIN ' + _.TBL_USER + ' u ON a.user_id = u.id'
-      + whereStr
-      + ' ORDER BY a.created_at DESC'; // TODO: ranking, relevance
+    
+    const textNoPagination = `
+SELECT
+  a.id, a.slug, a.title, a.tags, 
+  a.is_buying, a.is_service, a.price, a.currency,
+  a.created_at, a.user_id, u.username,
+  a.lat, a.lon, a.geo_accuracy
+FROM ${_.TBL_ADVERT} a
+INNER JOIN ${_.TBL_USER} u ON a.user_id = u.id
+${whereStr}
+ORDER BY a.created_at DESC
+`; // TODO: ranking, relevance
     
     const text = textNoPagination + offsetStr + limitStr;
     const qryName = 'adverts-text-search-' + hash(text);
     const { result, error: findError } = await db.query(text, params, qryName);
     if (findError) throw findError;
     data = result && result.rows ? result.rows : [];
-    console.log('found ' + data.length + ' rows');
 
     meta = await db.queryMeta(textNoPagination, paramsNoPagination, 'meta-' + qryName);
 
