@@ -3,14 +3,104 @@ import differenceInSeconds from 'date-fns/differenceInSeconds';
 import * as _ from './constants';
 import { ErrBadRequest, ErrForbidden, ErrNotFound, ErrUnauthorized } from './errors';
 import { hash, log, newUuid, ts, validateEmailAddress, rndEmailVerificationCode } from './utils';
+import { ISecurityMgr } from './security';
+import { IEmailMgr } from './emails';
+import { IDb } from './db';
+import { IConfig } from './config';
+import { IAdvertDetailsModel, IAdvertSummaryModel, IArticleDetailsModel, IPostDetailsModel, IPostSummaryModel, IUser, IUserPublic } from './types';
 
-export function newApi({ config, db, securityMgr, emailMgr }) {
+export interface IApiProps {
+  config: IConfig;
+  db: IDb;
+  securityMgr: ISecurityMgr;
+  emailMgr: IEmailMgr;
+}
+
+export interface IApiInput<TInput = any> {
+  user?: any;
+  id?: string | null;
+  input?: TInput;
+}
+
+export interface IMetaBase {
+  row_count: number;
+}
+
+export interface IApiResult<TData = any, TMeta = IMetaBase> {
+  data?: TData;
+  meta?: TMeta;
+  error?: string | null;
+}
+
+export type ISignUpInput = IApiInput<{
+  username?: string;
+  password?: string;
+  password_confirm?: string;
+}>
+
+export type ISignUpOutput = Promise<IApiResult<ISignInData>>;
+
+export interface ISignInData {
+  id: string;
+  username: string;
+  token: string;
+  token_type: 'Bearer';
+}
+
+export type ISignInInput = IApiInput<{
+  username?: string;
+  password?: string;
+}>;
+
+export type ISignInOutput = Promise<IApiResult<ISignInData>>;
+
+export interface ISignOutData {
+  token: string;
+}
+
+export type ISignOutOutput = Promise<IApiResult<ISignOutData>>;
+
+export type IUserRetrieveInput = IApiInput<{ id?: string; username?: string; }>;
+
+export type IUserRetrieveOutput = Promise<IApiResult<IUserPublic>>;
+
+
+export type IPostSearchInput = IApiInput<{
+  user_id?: string | null;
+  username?: string | null;
+  q?: string | null;
+  tag?: string | null;
+  min_price?: string | null;
+  max_price?: string | null;
+  offset?: string | null;
+  limit?: string | null;
+  with_assets?: boolean | null;
+}>;
+
+export type IPostSearchOutput = Promise<IApiResult<Array<IPostSummaryModel>>>;
+
+export type IAdvertSearchInput = IApiInput<{
+  user_id?: string | null;
+  username?: string | null;
+  q?: string | null;
+  tag?: string | null;
+  min_price?: string | null;
+  max_price?: string | null;
+  offset?: string | null;
+  limit?: string | null;
+  with_assets?: boolean | null;
+}>;
+
+export type IAdvertSearchOutput = Promise<IApiResult<Array<IAdvertSummaryModel>>>;
+
+
+export function newApi({ config, db, securityMgr, emailMgr }: IApiProps) {
 
   // TODO: captcha
-  async function signup({ input }) {
+  async function signup({ input }: ISignUpInput): ISignUpOutput {
     let data = null, error = null;
     try {
-      let { username = '', password = '', password_confirm = '' } = input;
+      const { username = '', password = '', password_confirm = '' } = input;
       const usernamePruned = securityMgr.pruneUsername(username);
       if (usernamePruned !== username) {
         throw new ErrBadRequest(_.MSG_INVALID_USERNAME);
@@ -54,14 +144,14 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
     return { data, error };
   }
 
-  async function signin({ input }) {
+  async function signin({ input }: ISignInInput): ISignInOutput {
     let data = null, token = null, error = _.MSG_INVALID_CREDENTIALS;
 
-    let { username = '', password = '' } = input;
+    const { username = '', password = '' } = input;
     username.trim().toLowerCase();
     if (!(username && username !== '' && password && password !== '')) throw new Error(error);
 
-    const { row: found, error: userLookupError } = await db.find(_.TBL_USER, { username }, 1);
+    const { row: found, error: userLookupError } = await db.find<IUser>(_.TBL_USER, { username }, 1);
     if (userLookupError) throw userLookupError;
     if (!found) throw new ErrNotFound(error);
 
@@ -77,7 +167,7 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
     return { data, error };
   }
 
-  async function signout() {
+  async function signout(): ISignOutOutput {
     return { data: { token: 'x' }, error: null }; // side-effect ==> invalid cookie on browser
   }
 
@@ -93,7 +183,7 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
       const id = newUuid();
       const row = { id, email, code, created_at: new Date(), used: 0 };
       const { result, error: insertErr } = await db.insert(_.TBL_EMAIL_VERIF, row);
-      if (insertErr) {
+      if (!result || insertErr) {
         log('db error in verify_email_start', insertErr);
         error = 'unexpected error'; break;
       }
@@ -117,18 +207,18 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
   async function verify_email_finish({ user, input = { email: '', code: '' }}) {
     let data = null, error = null, found = false;
     const { email = '', code = '' } = input;
-    while(!found) {
+    while (!found) {
       if (!validateEmailAddress(email)) {
         error = 'invalid email address or code'; break;
       }
       const { result, error: findErr } = await db.find(_.TBL_EMAIL_VERIF, { email, code, used: 0 });
-      if (findErr) {
+      if (!result || findErr) {
         log('db error in verify_email_finish', findErr);
         error = 'unexpected error'; break;
       }
       const { rows = [] } = result;
       const now = new Date();
-      for (let row of rows) {
+      for (const row of rows) {
         const delta = differenceInSeconds(now, row.created_at);
         if (delta < 10 * 60) { // ok, within 10 minutes, not expired
           found = true;
@@ -142,7 +232,7 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
       // save verified email address in db
       const change = { email, email_verified: 1 };
       const { result: resultUpdate, error: updateErr } = await db.update(_.TBL_USER, { id: user.id }, change);
-      if (updateErr) {
+      if (!resultUpdate || updateErr) {
         log('db error in verify_email_finish', findErr);
         error = 'unexpected error';
         break;
@@ -154,10 +244,10 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
   }
 
   // we can use user_retrieve
-  async function user_retrieve_self({ user = { id: '' } }) {
+  async function user_retrieve_self({ user = { id: '' }}: IUserRetrieveInput): IUserRetrieveOutput {
     const { id = '' } = user ?? {};
     if (id && (id !== '')) {
-      const { row, error } = await db.find(_.TBL_USER, { id }, 1);
+      const { row, error } = await db.find<IUser>(_.TBL_USER, { id }, 1);
       const data = securityMgr.hideSensitiveUserProps(row);
       return { data, error };
     } else {
@@ -166,32 +256,33 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
     }
   }
 
-  async function user_retrieve({ user, id = null }) {
-    let data = null, error = null;
+  async function user_retrieve({ id = null }: IUserRetrieveInput): IUserRetrieveOutput {
+    let data = null;
     // TODO: analytics of 'views' per record per visitor per day
     const condition = { id };
     if (!id) throw new ErrBadRequest(_.MSG_ID_REQUIRED);
-    const { row, error: findUserError } = await db.find(_.TBL_USER, condition, 1);
-    if (findUserError) throw findUserError;
+    const { row, error } = await db.find(_.TBL_USER, condition, 1);
+    if (error) throw error;
     data = securityMgr.hideSensitiveUserProps(row);
     return { data, error };
   }
 
-  async function user_retrieve_by_username({ user, input = { username: '' } }) {
-    let data = null, error = null;
+  async function user_retrieve_by_username({ input = { username: '' }}: IUserRetrieveInput): IUserRetrieveOutput {
+    let data = null;
     // TODO: analytics of 'views' per record per visitor per day
     const { username = '' } = input;
     if (!username || (username === '')) throw new ErrBadRequest(_.MSG_USERNAME_REQUIRED);
     const condition = { username };
-    const { row, error: findUserError } = await db.find(_.TBL_USER, condition, 1);
-    if (findUserError) throw findUserError;
+    const { row, error } = await db.find(_.TBL_USER, condition, 1);
+    if (error) throw error;
     data = securityMgr.hideSensitiveUserProps(row);
     return { data, error };
   }
 
   async function user_search({ user, input = { lat1: 0, lon1: 0, lat2: 0, lon2: 0, with_assets: false } }) {
-    let data = [], error = null;
-    let { lat1 = 0, lon1 = 0, lat2 = 0, lon2 = 0, with_assets = false } = input;
+    let data = [];
+    // eslint-disable-next-line prefer-const
+    let { lat1 = 0, lon1 = 0, lat2 = 0, lon2 = 0, with_assets } = input;
     // TODO: restrict area that can be searched e.g. by geolocation of current user
     const { latDelta, lonDelta } = config.geo;
     lat1 = lat1 ? lat1 : user.lat - latDelta;
@@ -213,50 +304,51 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
       await find_attach_assets({ user, data, parent_entity_kind: _.ENTITY_ASSET_PARENT_KIND.USER });
     }
 
-    return { data, error };
+    return { data };
   }
 
   async function usercontact_update({ user, id, input }) {
     // permission is checked by _isProtected()
     // let { first_name, last_name, email, phone, headline, neighbourhood } = input;
-    let change = updateRow({ ...input, user }); // TODO: limit inputs?
+    const change = updateRow({ ...input, user }); // TODO: limit inputs?
     const condition = { id }; // TODO: for now, only user himself can update
-    let { result, error } = await db.update(_.TBL_USER, condition, change, 1);
+    const { result, error } = await db.update(_.TBL_USER, condition, change, 1);
     return { data: result && result.rowCount, error };
   }
 
   async function usercontact_update_self({ user, input }) {
     // permission is checked by _isProtected()
     // let { first_name, last_name, email, phone, headline, neighbourhood } = input;
-    let change = updateRow({ ...input, user }); // TODO: limit inputs?
+    const change = updateRow({ ...input, user }); // TODO: limit inputs?
     const condition = { id: user.id }; // TODO: for now, only user himself can update
-    let { result, error } = await db.update(_.TBL_USER, condition, change, 1);
+    const { result, error } = await db.update(_.TBL_USER, condition, change, 1);
     return { data: result && result.rowCount, error };
   }
 
   async function usergeo_update({ user, id, input }) {
     // permission is checked by _isProtected()
-    let { lat = 0, lon = 0, geo_accuracy = 9999 } = input;
+    const { lat = 0, lon = 0, geo_accuracy = 9999 } = input;
     const now = new Date();
-    let change = updateRow({ lat, lon, geo_accuracy, geo_updated_at: now, user });
+    const change = updateRow({ lat, lon, geo_accuracy, geo_updated_at: now, user });
     const condition = { id }; // TODO: for now, only user himself can update
-    let { result, error } = await db.update(_.TBL_USER, condition, change, 1);
+    const { result, error } = await db.update(_.TBL_USER, condition, change, 1);
     return { data: result && result.rowCount, error };
   }
 
   async function usergeo_update_self({ user, input }) {
     // permission is checked by _isProtected()
-    let { lat = 0, lon = 0, geo_accuracy = 9999 } = input;
+    const { lat = 0, lon = 0, geo_accuracy = 9999 } = input;
     const now = new Date();
-    let change = updateRow({ lat, lon, geo_accuracy, geo_updated_at: now, user });
+    const change = updateRow({ lat, lon, geo_accuracy, geo_updated_at: now, user });
     const condition = { id: user.id }; // TODO: for now, only user himself can update
-    let { result, error } = await db.update(_.TBL_USER, condition, change, 1);
+    const { result, error } = await db.update(_.TBL_USER, condition, change, 1);
     return { data: result && result.rowCount, error };
   }
 
   async function post_create({ user, input }) {
     if (!user) throw new ErrForbidden();
 
+    // eslint-disable-next-line prefer-const
     let { slug = '', title = '', content = '', tags = '', asset_id = null, lat = 0, lon = 0, geo_accuracy = 9999 } = input;
     const now = new Date();
     const id = newUuid();
@@ -288,7 +380,7 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
     return { data: 0 < result.rowCount ? id : null, error };
   }
 
-  async function post_retrieve({ user, id, input }) {
+  async function post_retrieve({ id }) {
     // TODO: validate uuid
     // TODO: analytics of 'views' per record per visitor per day
     const { row: data, error } = await db.find(_.TBL_POST, { id }, 1);
@@ -296,12 +388,11 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
   }
 
   async function post_update({ user, id, input }) {
-    let error = null;
-
+    // eslint-disable-next-line prefer-const
     let { slug, title, content, tags, lat = 0, lon = 0, geo_accuracy = 9999 } = input;
     const now = new Date();
 
-    const { row: postFound, error: findPostErr } = await db.find(_.TBL_POST, { id }, 1);
+    const { row: postFound, error: findPostErr } = await db.find<IPostDetailsModel>(_.TBL_POST, { id }, 1);
     if (findPostErr) throw findPostErr;
     if (!postFound) throw new ErrNotFound(_.MSG_POST_NOT_FOUND);
     if (postFound.user_id !== user.id) throw new ErrForbidden(); // TODO: we can use postFound.created_by
@@ -309,18 +400,18 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
     if (!title) title = 'my post at ' + now.toISOString();
     if (!slug) slug = title;
     slug = makePostRef(slug);
-    let change = updateRow({
+    const change = updateRow({
       user,
       slug, title, content, tags,
       lat, lon, geo_accuracy,
     });
-    let { result, error: updatePostError } = await db.update(_.TBL_POST, { id }, change, 1);
+    const { result, error: updatePostError } = await db.update(_.TBL_POST, { id }, change, 1);
     if (updatePostError) throw updatePostError;
 
-    return { data: result && result.rowCount, error };
+    return { data: result && result.rowCount };
   }
 
-  async function post_delete({ user, id, input }) {
+  async function post_delete({ id }) {
     // TODO: validate uuid
     // TODO: delete related records
     const { result, error } = await db.del(_.TBL_POST, { id }, 1);
@@ -328,7 +419,8 @@ export function newApi({ config, db, securityMgr, emailMgr }) {
   }
 
   async function post_search({ user, input }) {
-    let data = [], meta = {}, error = null, ph = '';
+    let data = [], meta = {}, ph = '';
+    // eslint-disable-next-line prefer-const
     let { user_id = null, username = null, q = '', tag = '', offset = 0, limit = 10, with_assets = false } = input;
     offset = Number.parseInt(offset);
     limit = Number.parseInt(limit);
@@ -384,7 +476,7 @@ ORDER BY p.created_at DESC
       await find_attach_assets({ user, data, parent_entity_kind: _.ENTITY_ASSET_PARENT_KIND.POST });
     }
 
-    return { data, meta, error };
+    return { data, meta };
   }
 
   async function post_search_by_user({ user, input = {} }) {
@@ -395,11 +487,12 @@ ORDER BY p.created_at DESC
 
   // use retrieve_post(), it is faster
   async function post_retrieve_by_username_and_slug({ user, input = { username: '', slug: '', with_assets: false } }) {
-    let data = null, error = null;
+    let data = null;
+    // eslint-disable-next-line prefer-const
     let { username = '', slug = '', with_assets = false } = input;
     username = username.toLowerCase();
     slug = slug.toLowerCase();
-    const { row: postOwner, error: userError } = await db.find(_.TBL_USER, { username }, 1);
+    const { row: postOwner, error: userError } = await db.find<IPostDetailsModel>(_.TBL_USER, { username }, 1);
     if (userError) throw userError;
     if (!postOwner) throw new ErrNotFound('user not found');
 
@@ -419,11 +512,12 @@ ORDER BY p.created_at DESC
       await find_attach_assets({ user, data: [ data ], parent_entity_kind: _.ENTITY_ASSET_PARENT_KIND.POST });
     }
 
-    return { data, error };
+    return { data };
   }
 
   async function article_search({ user, input }) {
-    let data = [], error = null;
+    let data = [];
+    // eslint-disable-next-line prefer-const
     let { q = '', offset = 0, limit = 10, with_assets = false } = input;
     offset = Number.parseInt(offset);
     limit = Number.parseInt(limit);
@@ -445,7 +539,7 @@ ORDER BY p.created_at DESC
       await find_attach_assets({ user, data, parent_entity_kind: _.ENTITY_ASSET_PARENT_KIND.ARTICLE });
     }
 
-    return { data, error };
+    return { data };
   }
 
   async function article_retrieve({ user, id = null, input = { slug: '', with_assets: false} }) {
@@ -454,7 +548,7 @@ ORDER BY p.created_at DESC
     const { slug = '', with_assets = false } = input;
     if ((id && (id !== '')) || (slug && (slug !== ''))) {
       const condition = id ? { id } : { slug };
-      const { row: data, error } = await db.find(_.TBL_ARTICLE, condition, 1);
+      const { row: data, error } = await db.find<IArticleDetailsModel>(_.TBL_ARTICLE, condition, 1);
 
       if (with_assets && data) {
         // with side effect on data
@@ -468,12 +562,11 @@ ORDER BY p.created_at DESC
   }
 
   async function article_update({ user, id, input }) {
-    let error = null;
-
+    // eslint-disable-next-line prefer-const
     let { slug, title, content, keywords } = input;
     const dt = new Date();
 
-    const { row: articleFound, error: findArticleErr } = await db.find(_.TBL_ARTICLE, { id }, 1);
+    const { row: articleFound, error: findArticleErr } = await db.find<IArticleDetailsModel>(_.TBL_ARTICLE, { id }, 1);
     if (findArticleErr) throw findArticleErr;
     if (!articleFound) throw new ErrNotFound(_.MSG_ARTICLE_NOT_FOUND);
     if (articleFound.created_by !== user.id) throw new ErrForbidden();
@@ -481,16 +574,18 @@ ORDER BY p.created_at DESC
     if (!title) title = 'my article at ' + dt.toISOString();
     if (!slug) slug = title;
     slug = makeArticleSlug(slug);
-    let change = updateRow({ slug, title, content, keywords, user });
-    let { result, error: updateArticleError } = await db.update(_.TBL_ARTICLE, { id }, change, 1);
-    if (updateArticleError) throw updateArticleError;
+    const change = updateRow({ slug, title, content, keywords, user });
+    const { result, error: updateArticleError } = await db.update(_.TBL_ARTICLE, { id }, change, 1);
+    if (!result || updateArticleError) throw updateArticleError;
 
-    return { data: result && result.rowCount, error };
+    return { data: result && result.rowCount };
   }
 
   async function asset_create({ user, input }) {
     if (!user) throw new ErrForbidden();
 
+    // TODO: validate input
+    // eslint-disable-next-line prefer-const
     let { id = newUuid(), asset_type = null, media_type = null, label = null, url = null, meta = {} } = input;
     const row = newRow({ id, user, asset_type, media_type, label, url, meta });
     const { result, error } = await db.insert(_.TBL_ASSET, row);
@@ -498,11 +593,12 @@ ORDER BY p.created_at DESC
   }
 
   async function asset_search({ user, input }) {
-    let data = [], error = null;
-    let { ids = [], offset = 0, limit = 10 } = input;
-    offset = Number.parseInt(offset);
-    limit = Number.parseInt(limit);
-    if (100 < limit) limit = 100;
+    let data = [];
+    const { ids = [], offset = '0', limit = '100' } = input;
+    let myOffset = Number.parseInt(offset);
+    if (myOffset < 0) myOffset = 0;
+    let myLimit = Number.parseInt(limit);
+    if (100 < myLimit) myLimit = 100;
     const conditions = [];
     const params = [];
     if (ids.length) {
@@ -525,7 +621,7 @@ ORDER BY p.created_at DESC
     const { result, error: findError } = await db.query(text, params, preparedQryName);
     if (findError) throw findError;
     data = result && result.rows ? result.rows : [];
-    return { data, error };
+    return { data };
   }
 
   async function asset_delete({ user, id, input }) {
@@ -538,6 +634,8 @@ ORDER BY p.created_at DESC
   async function entity_asset_create({ user, input }) {
     if (!user) throw new ErrForbidden();
 
+    // TODO: validate input
+    // eslint-disable-next-line prefer-const
     let { parent_entity_kind = null, parent_entity_id = null, purpose = null, asset_id = null, meta = {} } = input;
     const id = newUuid();
     const row = newRow({
@@ -554,11 +652,12 @@ ORDER BY p.created_at DESC
   }
 
   async function entity_asset_search({ user, input }) {
-    let data = [], error = null;
-    let { parent_entity_kind = null, parent_entity_ids = [], offset = 0, limit = 10 } = input;
-    offset = Number.parseInt(offset);
-    limit = Number.parseInt(limit);
-    if (100 < limit) limit = 100;
+    let data = [];
+    const { parent_entity_kind = null, parent_entity_ids = [], offset = '0', limit = '100' } = input;
+    let myOffset = Number.parseInt(offset);
+    if (myOffset < 0) myOffset = 0;
+    let myLimit = Number.parseInt(limit);
+    if (100 < myLimit) myLimit = 100;
     const conditions = [];
     const params = [];
     if (parent_entity_kind) {
@@ -587,7 +686,7 @@ ORDER BY p.created_at DESC
     const { result, error: findError } = await db.query(text, params, preparedQryName);
     if (findError) throw findError;
     data = result && result.rows ? result.rows : [];
-    return { data, error };
+    return { data };
   }
 
   async function entity_asset_delete({ user, id, input }) {
@@ -598,7 +697,7 @@ ORDER BY p.created_at DESC
   }
 
   async function find_attach_assets({ user, data, parent_entity_kind = null }) {
-    const { data: entityAssets, error: entityAssetErr } = await entity_asset_search({
+    const { data: entityAssets } = await entity_asset_search({
       user,
       input: {
         parent_entity_kind,
@@ -606,9 +705,6 @@ ORDER BY p.created_at DESC
         limit: data.length,
       },
     });
-    if (entityAssetErr) {
-      log('find_attach_assets', entityAssetErr);
-    }
     if (entityAssets) {
       entityAssets.forEach(eaRow => {
         const { parent_entity_id } = eaRow;
@@ -624,12 +720,13 @@ ORDER BY p.created_at DESC
   async function advert_create({ user, input }) {
     if (!user) throw new ErrForbidden();
 
-    let {
-      slug = '', title = '', content = '', tags = '', asset_id = null,
-      is_buying = 0, is_service = 0, price = 0, currency = 'GBP',
-      lat = 0, lon = 0, geo_accuracy = 9999,
-    } = input;
+    // TODO: validate input
+    // eslint-disable-next-line prefer-const
+    let { slug = '', title = '', content = '', tags = '', asset_id = null, is_buying = 0, is_service = 0 } = input;
+    // eslint-disable-next-line prefer-const
+    let { price = 0, currency = 'GBP', lat = 0, lon = 0, geo_accuracy = 9999 } = input;
     const now = new Date();
+    
     const id = newUuid();
     if (!title) title = 'my advert';
     if (!slug) slug = title + now.toISOString();
@@ -668,16 +765,14 @@ ORDER BY p.created_at DESC
   }
 
   async function advert_update({ user, id, input }) {
-    let error = null;
-
-    let {
-      slug, title, content, tags,
-      is_buying = 0, is_service = 0, price = 0, currency = 'GBP',
-      lat = 0, lon = 0, geo_accuracy = 9999,
-    } = input;
+    // TODO: validate inputs
+    // eslint-disable-next-line prefer-const
+    let { slug, title, content, tags, is_buying = 0, is_service = 0 } = input;
+    // eslint-disable-next-line prefer-const
+    let { price = 0, currency = 'GBP', lat = 0, lon = 0, geo_accuracy = 9999 } = input;
     const now = new Date();
 
-    const { row: advertFound, error: findAdvertErr } = await db.find(_.TBL_ADVERT, { id }, 1);
+    const { row: advertFound, error: findAdvertErr } = await db.find<IAdvertDetailsModel>(_.TBL_ADVERT, { id }, 1);
     if (findAdvertErr) throw findAdvertErr;
     if (!advertFound) throw new ErrNotFound(_.MSG_ADVERT_NOT_FOUND);
     if (advertFound.user_id !== user.id) throw new ErrForbidden(); // TODO: we can use postFound.created_by
@@ -685,15 +780,15 @@ ORDER BY p.created_at DESC
     if (!title) title = 'my advert at ' + now.toISOString();
     if (!slug) slug = title;
     slug = makeAdvertRef(slug);
-    let change = updateRow({
+    const change = updateRow({
       user, slug, title, content, tags,
       is_buying, is_service, price, currency,
       lat, lon, geo_accuracy,
     });
-    let { result, error: updateAdvertError } = await db.update(_.TBL_ADVERT, { id }, change, 1);
-    if (updateAdvertError) throw updateAdvertError;
+    const { result, error: updateAdvertError } = await db.update(_.TBL_ADVERT, { id }, change, 1);
+    if (!result || updateAdvertError) throw updateAdvertError;
 
-    return { data: result && result.rowCount, error };
+    return { data: result && result.rowCount };
   }
 
   async function advert_delete({ user, id, input }) {
@@ -703,14 +798,16 @@ ORDER BY p.created_at DESC
     return { data: 0 < result.rowCount, error };
   }
 
-  async function advert_search({ user, input }) {
-    let data = [], meta = null, error = null, ph = '';
-    let { user_id = null, username = null, q = '', tag = '', min_price = -1, max_price = -1, offset = 0, limit = 10, with_assets = false } = input;
-    min_price = Number.parseInt(min_price);
-    max_price = Number.parseInt(max_price);
-    offset = Number.parseInt(offset);
-    limit = Number.parseInt(limit);
-    if (100 < limit) limit = 100;
+  async function advert_search({ user, input }: IAdvertSearchInput): IAdvertSearchOutput {
+    let data = [], meta = null, ph = '';
+    // eslint-disable-next-line prefer-const
+    let { user_id = null, username = null, q = '', tag = '', min_price = '-1', max_price = '-1', offset = '0', limit = '10', with_assets = false } = input;
+    const minPrice = Number.parseInt(min_price);
+    const maxPrice = Number.parseInt(max_price);
+    let myOffset = Number.parseInt(offset);
+    if (myOffset < 0) myOffset = 0;
+    let myLimit = Number.parseInt(limit);
+    if (100 < myLimit) myLimit = 100;
     const conditions = [], params = [];
     if (user_id) {
       params.push(user_id);
@@ -729,11 +826,11 @@ ORDER BY p.created_at DESC
       params.push(`%${tag}%`); // TODO: use tag index
       conditions.push('a.tags LIKE ' + db.placeHolder(params.length));
     }
-    if (0 <= min_price) {
+    if (0 <= minPrice) {
       params.push(min_price);
       conditions.push(db.placeHolder(params.length) + ' <= a.price');
     }
-    if (0 <= max_price) {
+    if (0 <= maxPrice) {
       params.push(max_price);
       conditions.push('a.price <= ' + db.placeHolder(params.length));
     }
@@ -741,9 +838,9 @@ ORDER BY p.created_at DESC
     
     const paramsNoPagination = [...params];
 
-    params.push(offset);
+    params.push(myOffset);
     const offsetStr = ' OFFSET ' + db.placeHolder(params.length);
-    params.push(limit);
+    params.push(myLimit);
     const limitStr = ' LIMIT ' + db.placeHolder(params.length);
     
     const textNoPagination = `
@@ -771,7 +868,7 @@ ORDER BY a.created_at DESC
       await find_attach_assets({ user, data, parent_entity_kind: _.ENTITY_ASSET_PARENT_KIND.ADVERT });
     }
 
-    return { data, meta, error };
+    return { data, meta };
   }
 
   async function advert_search_by_user({ user, input = {} }) {
@@ -782,18 +879,19 @@ ORDER BY a.created_at DESC
 
   // use retrieve_advert(), it is faster
   async function advert_retrieve_by_username_and_slug({ user, input = { username: '', slug: '', with_assets: false } }) {
-    let data = null, error = null;
+    let data = null;
+    // eslint-disable-next-line prefer-const
     let { username = '', slug = '', with_assets = false } = input;
     username = username.toLowerCase();
     slug = slug.toLowerCase();
-    const { row: advertOwner, error: userError } = await db.find(_.TBL_USER, { username }, 1);
+    const { row: advertOwner, error: userError } = await db.find<IUserPublic>(_.TBL_USER, { username }, 1);
     if (userError) throw userError;
     if (!advertOwner) throw new ErrNotFound('user not found');
 
     const text = 'SELECT * FROM ' + _.TBL_ADVERT
       + ' WHERE (user_id = $1) AND (slug = $2)';
     const { result, error: advertError } = await db.query(text, [advertOwner.id, slug], 'advert-by-user-and-ref');
-    if (advertError) throw advertError;
+    if (!result || advertError) throw advertError;
     if (result && result.rows && result.rows[0]) {
       // TODO: analytics of 'views' per record per visitor per day
       data = result.rows[0];
@@ -806,7 +904,7 @@ ORDER BY a.created_at DESC
       await find_attach_assets({ user, data: [ data ], parent_entity_kind: _.ENTITY_ASSET_PARENT_KIND.ADVERT });
     }
 
-    return { data, error };
+    return { data };
   }
 
   const actionsProtected = [

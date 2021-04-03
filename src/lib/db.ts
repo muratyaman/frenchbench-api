@@ -1,12 +1,42 @@
+import { Pool, Result } from 'pg';
 import { hash, log, newUuid } from './utils';
 
-export function newDb({ pool }) {
+export interface IDbProps {
+  pool: Pool;
+}
 
-  function placeHolder(idx) {
+export interface IDb {
+  query(text: string, values?: any[], name?: string | null): Promise<IDbQueryResult>;
+  queryMeta(text: string, values?: any[], name?: string | null): Promise<IDbQueryResultMeta>;
+  now(): Promise<IDbQueryResult>;
+  find<T>(tableName: string, condition?: any, limit?: number): Promise<IDbQueryResultWithRow<T>>;
+  insert(tableName: string, row: any): Promise<IDbQueryResult>;
+  update(tableName: string, condition: any, change: any, limit?: number): Promise<IDbQueryResult>;
+  del(tableName: string, condition: any, limit?: number): Promise<IDbQueryResult>;
+  placeHolder(idx: number): string;
+}
+
+export interface IDbQueryResult {
+  result: Result;
+  error: any;
+}
+
+export interface IDbQueryResultWithRow<TRow = any> extends IDbQueryResult {
+  row?: TRow;
+}
+
+export interface IDbQueryResultMeta {
+  error: any;
+  row_count?: number;
+}
+
+export function newDb({ pool }: IDbProps): IDb {
+
+  function placeHolder(idx: number): string {
     return '$' + idx;
   }
 
-  async function query(text, values = [], name = null) {
+  async function query(text: string, values: any[] = [], name: string | null = null): Promise<IDbQueryResult> {
     let result = null, error = null;
     const id = newUuid();
     log('db query', id, name, text);
@@ -25,18 +55,18 @@ export function newDb({ pool }) {
     return { result, error };
   }
 
-  async function queryMeta(text, values = [], name = null) {
+  async function queryMeta(text: string, values: any[] = [], name: string | null = null): Promise<IDbQueryResultMeta> {
     const counter = `SELECT COUNT(q.*) AS row_count FROM (${text}) q`;
     const { result, error } = await query(counter, values, name);
     const row0 = result && result.rows && result.rows[0] ? result.rows[0] : {};
     return { error, ...row0 };
   }
 
-  async function now() {
+  async function now(): Promise<IDbQueryResult> {
     return query('SELECT NOW() AS ts');
   }
 
-  async function find(tableName, condition = {}, limit = 0) {
+  async function find<TRow = any>(tableName: string, condition: any = {}, limit = 0): Promise<IDbQueryResultWithRow<TRow>> {
     const where = [], params = [];
     Object.entries(condition).forEach(([field, value]) => {
       params.push(value);
@@ -67,7 +97,7 @@ export function newDb({ pool }) {
    * @param {object} row
    * @see https://www.postgresql.org/docs/current/sql-insert.html
    */
-  async function insert(tableName, row = {}) {
+  async function insert(tableName: string, row: any): Promise<IDbQueryResult> {
     const fields = [], params = [], placeHolders = [];
     Object.entries(row).forEach(([field, value]) => {
       fields.push(field);
@@ -91,7 +121,7 @@ export function newDb({ pool }) {
    * @param {object} change
    * @see https://www.postgresql.org/docs/current/sql-update.html
    */
-  async function update(tableName, condition = {}, change = {}) {
+  async function update(tableName: string, condition: any, change: any, limit = 1): Promise<IDbQueryResult> {
     const assignments = [], where = [], params = [];
     Object.entries(change).forEach(([field, value]) => {
       params.push(value);
@@ -103,7 +133,9 @@ export function newDb({ pool }) {
     });
     const assignmentsStr = assignments.join(', ');
     const whereStr = where ? ' WHERE ' + where.join(' AND ') : '';
-    const text = `UPDATE ${tableName} SET ${assignmentsStr} ${whereStr}`;
+    params.push(limit);
+    const limitPh = placeHolder(params.length);
+    const text = `UPDATE ${tableName} SET ${assignmentsStr} ${whereStr} LIMIT ${limitPh}`;
     const name = tableName + '-u-' + hash(text);
     return query(text, params, name);
   }
@@ -116,14 +148,16 @@ export function newDb({ pool }) {
    * @param {object} condition
    * @see https://www.postgresql.org/docs/current/sql-delete.html
    */
-  async function del(tableName, condition = {}) {
+  async function del(tableName: string, condition: any, limit = 1): Promise<IDbQueryResult> {
     const where = [], params = [];
     Object.entries(condition).forEach(([field, value]) => {
       params.push(value);
       where.push(field + ' = ' + placeHolder(params.length));
     });
     const whereStr = where ? 'WHERE ' + where.join(' AND ') : '';
-    const text = `DELETE FROM ${tableName} ${whereStr}`;
+    params.push(limit);
+    const limitPh = placeHolder(params.length);
+    const text = `DELETE FROM ${tableName} ${whereStr} LIMIT ${limitPh}`;
     const name = tableName + '-d-' + hash(text);
     return query(text, params, name);
   }

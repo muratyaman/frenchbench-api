@@ -1,11 +1,13 @@
 import 'dotenv/config'; // read .env file
 import { newHttpServer } from './httpServer';
+import { newConfig } from './lib';
 import { newWebSocketServer } from './webSocketServer';
 
 boot();
 
 async function boot() {
-  const { httpServer, config, pool, securityMgr, api } = await newHttpServer(process.env);
+  const config = newConfig(process.env);
+  const { httpServer, pool, securityMgr, api } = await newHttpServer(config);
   
   const { webSocketServer, onHttpUpgrade } = await newWebSocketServer({ config, securityMgr, api });
 

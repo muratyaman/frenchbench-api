@@ -1,13 +1,20 @@
+import { Request, Response } from 'express';
 import { ErrUnauthorized, ERR_NO_FILE_UPLOADED, log, newUuid } from '../../../lib';
 
-export function makeApiUploadHandler({ fileMgr, securityMgr }) {
+export interface IApiUploadHandlerProps {
+  fileMgr: any;
+  securityMgr: any;
+}
+
+export function makeApiUploadHandler({ fileMgr, securityMgr }: IApiUploadHandlerProps) {
 
   // handle '/api/upload'
-  async function handleApiUpload(req, res) {
+  async function handleApiUpload(req: Request, res: Response): Promise<void> {
     const t1 = new Date();
     
-    req.id = newUuid();
-    log(req.id, '/api/upload request START');
+    const rid = newUuid();
+    req['id'] = rid;
+    log(rid, '/api/upload request START');
 
     let data = null, error = null;
     try {
@@ -48,10 +55,11 @@ export function makeApiUploadHandler({ fileMgr, securityMgr }) {
 
     const t2 = new Date();
     const delta = t2.getTime() - t1.getTime();
-    log(req.id, '/api/upload request END', delta, 'ms');
+    log(rid, '/api/upload request END', delta, 'ms');
     
     // try to send status 200, always! HTTP is merely a way of talking to backend; no need for a RESTful service.
     res.setHeader('x-fb-time-ms', delta);
+    res.setHeader('x-req-id', rid);
     res.json({ data, error });
   }
 

@@ -1,20 +1,30 @@
+import { Request, Response } from 'express';
 import { ErrUnauthorized, ErrUnknownAction, log, newUuid } from '../../lib';
 
-export function makeApiHandler({ api, config, cookieMgr, db, securityMgr }) {
+export interface IApiHandlerProps {
+  api: any;
+  config: any;
+  cookieMgr: any;
+  db: any;
+  securityMgr: any;
+}
 
-  async function handleApi(req, res) {
+export function makeApiHandler({ api, config, cookieMgr, db, securityMgr }: IApiHandlerProps) {
+
+  async function handleApi(req: Request, res: Response): Promise<void> {
     const t1 = new Date();
     
-    req.id = newUuid();
+    const rid = newUuid();
+    req['id'] = rid;
 
-    log(req.id, 'request START', req.body);
+    log(rid, 'request START', req.body);
     let output = null, token = null;
     
     try {
       
       if (!config.IS_PRODUCTION_MODE) {
         const now = await db.now(); // make sure we can connect
-        log(req.id, 'db now', now);
+        log(rid, 'db now', now);
       }
 
       const { user, error: tokenError } = securityMgr.getSessionUser(req);
@@ -41,7 +51,7 @@ export function makeApiHandler({ api, config, cookieMgr, db, securityMgr }) {
       }
 
     } catch (err) {
-      log(req.id, 'error', err);
+      log(rid, 'error', err);
       output = { error: err.message };
     }
 
@@ -52,10 +62,11 @@ export function makeApiHandler({ api, config, cookieMgr, db, securityMgr }) {
 
     const t2 = new Date();
     const delta = t2.getTime() - t1.getTime();
-    log(req.id, 'request END', delta, 'ms');
+    log(rid, 'request END', delta, 'ms');
 
     // try to send status 200, always! HTTP is merely a way of talking to backend; no need for a RESTful service.
     res.setHeader('x-fb-time-ms', delta);
+    res.setHeader('x-req-id', rid);
     res.json(output);
   }
 

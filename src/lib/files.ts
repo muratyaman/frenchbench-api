@@ -1,20 +1,54 @@
 import AWS from 'aws-sdk';
-import formidable from 'formidable';
+import { Request } from 'express';
+import { formidable } from 'formidable';
 import path from 'path';
 import sharp from 'sharp';
 import * as _ from './constants';
 import { log } from './utils';
+import { IConfig } from './config';
 
-export function newS3Client({ config }) {
+export interface IS3ClientProps {
+  config: IConfig;
+}
+
+export function newS3Client({ config }: IS3ClientProps): AWS.S3 {
   const { accessKeyId, secretAccessKey } = config.s3;
   return new AWS.S3({ accessKeyId, secretAccessKey });
 }
 
-export function newFileMgr({ config, s3 }) {
+export interface IFileMgrProps {
+  config: IConfig;
+  s3: AWS.S3;
+}
+
+export interface IFileMgr {
+  receiveFiles(req: Request): Promise<IReceivedProps>;
+  readStreamToBuffer(filePath: string): Promise<Buffer>;
+  resizeAndUpload(readBuffer: Buffer, file_name: string, size: number): Promise<any>;
+  resizeImage(readBuffer: Buffer, widthIn: number): Promise<Buffer>;
+  s3UploadFile(Body: Buffer, file_name: string, size: number): Promise<any>;
+  checkFileType(file: IFileObj): boolean;
+  checkFileSize(file: IFileObj): boolean;
+  pruneFileName(file: IFileObj): IFileObj;
+  getFileExt(filePath: string): string;
+}
+
+export interface IFileObj {
+  name?: string;
+  type?: string;
+  size?: number;
+}
+
+export interface IReceivedProps {
+  fields: any;
+  files: any;
+}
+
+export function newFileMgr({ config, s3 }: IFileMgrProps): IFileMgr {
   const { Bucket, ACL, folders } = config.s3;
   const formOptions = { multiples: true, keepExtensions: true, hash: 'sha1' };
 
-  async function receiveFiles(req) {
+  async function receiveFiles(req: Request): Promise<IReceivedProps> {
     log('receiveFiles');
     return new Promise((resolve, reject) => {  
       const form = formidable(formOptions);
@@ -38,12 +72,12 @@ export function newFileMgr({ config, s3 }) {
     })
   }
 
-  async function readStreamToBuffer(filePath) {
+  async function readStreamToBuffer(filePath: string): Promise<Buffer> {
     return sharp(filePath).toBuffer();
   }
 
-  async function resizeAndUpload(readBuffer, file_name, size) {
-    let result = {};
+  async function resizeAndUpload(readBuffer: Buffer, file_name: string, size: number): Promise<any> {
+    let result: any = {};
     try {
       const image = await resizeImage(readBuffer, _.MAX_FILE_DIMS[size]);
       result = await s3UploadFile(image, file_name, size);
@@ -55,13 +89,13 @@ export function newFileMgr({ config, s3 }) {
     return result;
   }
 
-  async function resizeImage(readBuffer, widthIn) {
+  async function resizeImage(readBuffer: Buffer, widthIn: number): Promise<Buffer> {
     let { width } = await sharp(readBuffer).metadata();
     width = Math.min(width, widthIn);
     return sharp(readBuffer).resize({ width }).toBuffer();
   }
 
-  async function s3UploadFile(Body, file_name, size) {
+  async function s3UploadFile(Body: Buffer, file_name: string, size: number): Promise<any> {
     const params = {
       Bucket,
       ACL,
@@ -71,22 +105,22 @@ export function newFileMgr({ config, s3 }) {
     return s3.upload(params).promise();
   }
 
-  function checkFileType({ type }) {
-    if (!_.ACCEPT_MIMETYPES.includes(type)) throw new Error(_.ERR_INVALID_FILE_TYPE);
-    return true;
+  function checkFileType({ type }: IFileObj): boolean {
+    if (type && _.ACCEPT_MIMETYPES.includes(type)) return true;
+    throw new Error(_.ERR_INVALID_FILE_TYPE);
   }
 
-  function checkFileSize({ size = 0 }) {
+  function checkFileSize({ size = 0 }: IFileObj): boolean {
     if (_.MAX_FILE_SIZE < size) throw new Error(_.ERR_INVALID_FILE_SIZE);
     return true;
   }
 
-  function pruneFileName(fb_file) {
+  function pruneFileName(fb_file: IFileObj): IFileObj {
     fb_file.name = String(fb_file.name).toLowerCase().replace(_.FILENAME_NOT_ACCEPTABLE_CHAR, '-');
     return fb_file;
   }
 
-  function getFileExt(filePath) {
+  function getFileExt(filePath: string): string {
     return path.extname(filePath).toLocaleLowerCase(); // => '.jpg'
   }
 

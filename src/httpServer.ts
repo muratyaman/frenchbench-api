@@ -4,14 +4,13 @@ import { createServer } from 'http';
 import morgan from 'morgan';
 import { Pool } from 'pg';
 import responseTime from 'response-time';
-import { newApi, newConfig, newCookieMgr, newDb, newFileMgr, newS3Client, newSecurityMgr, newEmailMgr } from './lib';
+import { newApi, newCookieMgr, newDb, newFileMgr, newS3Client, newSecurityMgr, newEmailMgr, IConfig } from './lib';
 import { makeApiHandler } from './routes/api';
 import { makeApiUploadHandler } from './routes/api/upload';
 
-export async function newHttpServer(penv) {
+export async function newHttpServer(config: IConfig) {
   const expressApp = express();
 
-  const config      = newConfig(penv);
   const cookieMgr   = newCookieMgr({ config });
   const securityMgr = newSecurityMgr({ config, cookieMgr });
 
@@ -42,7 +41,6 @@ export async function newHttpServer(penv) {
 
   return Promise.resolve({
     expressApp,
-    config,
     cookieMgr,
     securityMgr,
     pool,

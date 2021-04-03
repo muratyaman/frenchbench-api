@@ -26,22 +26,28 @@ export const newSesMsg    = (msg, ses) => newMsg({ kind: MSG_KIND_SES, msg, ses,
 export const newJoinedMsg = (user)     => newMsg({ kind: MSG_KIND_JOINED, msg: user.username + ' joined', by: USERNAME_FB });
 export const newChatMsg   = (msg, by)  => newMsg({ kind: MSG_KIND_CHAT, msg, by });
 
+export interface IClient {
+  ws: any;
+  user: any;
+}
+
 export class FbHub {
+  clients: Map<string, IClient>; 
   constructor(){
-    this.clients = new Map();
+    this.clients = new Map<string, IClient>();
   }
   add(sesId, ws, user) {
     return this.clients.set(sesId, { ws, user });
   }
-  get(sesId) {
+  get(sesId: string) {
     return this.clients.get(sesId);
   }
-  remove(sesId) {
+  remove(sesId: string) {
     return this.clients.delete(sesId);
   }
-  sendToNeighbours(msg, fromSesId) {
+  sendToNeighbours(msg: string, fromSesId: string): void {
     // const fromClient = this.get(fromSesId);
-    for (let [sesId, client] of this.clients) {
+    for (const [sesId, client] of this.clients) {
       // TODO: filter by geolocation
       //if (sesId !== fromSesId) { // except owner of msg
         client.ws.send(msg);

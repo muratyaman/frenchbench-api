@@ -1,11 +1,29 @@
 import bcrypt from 'bcrypt';
+import { Request } from 'express';
 import jwtManager from 'jsonwebtoken';
 import * as _ from './constants';
 import { log } from './utils';
+import { IConfig } from './config';
+import { ISessionUserAndError } from './types';
+import { ICookieMgr } from './cookies';
 
-export function newSecurityMgr({ config, cookieMgr }) {
+export interface ISecurityMgrProps {
+  config: IConfig;
+  cookieMgr: ICookieMgr;
+}
 
-  function getSessionUser(req) {
+export interface ISecurityMgr {
+  getSessionUser(req: Request): ISessionUserAndError,
+  pruneUsername(username: string): string,
+  isStrongPassword(password: string): boolean,
+  hashPassword(plainPassword: string, saltRounds?: number): Promise<string>,
+  verifyPassword(plainPassword: string, password_hash: string): Promise<boolean>;
+  hideSensitiveUserProps<T = Record<string, any>>(row: T): Omit<T, 'password' & 'password_hash'>;
+}
+
+export function newSecurityMgr({ config, cookieMgr }: ISecurityMgrProps): ISecurityMgr {
+
+  function getSessionUser(req: Request): ISessionUserAndError {
     let user = null, error = null;
     try { // do we have a user session?
       let token = null, tokenType = null;
@@ -20,22 +38,20 @@ export function newSecurityMgr({ config, cookieMgr }) {
       }
       if (token && tokenType && tokenType.toLowerCase() === _.TOKEN_TYPE_BEARER) {
         const decoded = jwtManager.verify(token, config.jwt.secret);
-        log(req.id, 'token', decoded); // e.g. { id: 'uuid', username: 'haci', iat: 1601748833, exp: 1601835233 }
+        log(req['id'], 'token', decoded); // e.g. { id: 'uuid', username: 'haci', iat: 1601748833, exp: 1601835233 }
         user = decoded;
       }
     } catch (jwtError) {
       error = jwtError.message;
-      log(req.id, 'token error', jwtError.message);
+      log(req['id'], 'token error', jwtError.message);
     }
     return { user, error };
   }
 
   /**
    * Remove all chars but a-z, A-Z, 0-9, '.', '-', '_'
-   * @param {string} username
-   * @returns {string}
    */
-  function pruneUsername(username) {
+  function pruneUsername(username: string): string {
     return String(username).replace(_.USERNAME_NOT_ACCEPTABLE_CHAR, '');
   }
 
@@ -46,11 +62,9 @@ export function newSecurityMgr({ config, cookieMgr }) {
    * 3. has 1 of A-Z
    * 4. has 1 of 0-9
    * 5. has 1 of special characters
-   * @param {string} password
-   * @returns {boolean}
    */
-  function isStrongPassword(password) {
-    let s = String(password);
+  function isStrongPassword(password: string): boolean {
+    const s = String(password);
     return _.MIN_PASSWORD_LEN <= s.length
       && _.HAS_LOWERCASE_CHAR.test(s)
       && _.HAS_UPPERCASE_CHAR.test(s)
@@ -60,28 +74,22 @@ export function newSecurityMgr({ config, cookieMgr }) {
 
   /**
    * Create hash for plain password
-   * @param {string} plainPassword
-   * @param {number} saltRounds
-   * @returns {Promise<string>}
    */
-  async function hashPassword(plainPassword, saltRounds = 10) {
+  async function hashPassword(plainPassword: string, saltRounds = 10): Promise<string> {
     // store hash in your db
     return bcrypt.hash(plainPassword, saltRounds);
   }
 
   /**
    * Verify password
-   * @param {string} plainPassword
-   * @param {string} password_hash
-   * @returns {Promise<Boolean>}
    */
-  async function verifyPassword(plainPassword, password_hash) {
-    // result == true/false
+  async function verifyPassword(plainPassword: string, password_hash: string): Promise<boolean> {
     return bcrypt.compare(plainPassword, password_hash);
   }
 
-  function hideSensitiveUserProps(row) {
-    delete row.password_hash;
+  function hideSensitiveUserProps<T = Record<string, any>>(row: T): Omit<T, 'password' & 'password_hash'> {
+    delete row['password'];
+    delete row['password_hash'];
     return row;
   }
 
