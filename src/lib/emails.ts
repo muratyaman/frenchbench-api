@@ -1,10 +1,6 @@
 import nodemailer, { Transporter, SentMessageInfo } from 'nodemailer';
 import { IConfig } from './config';
 
-export interface IEmailMgrProps {
-  config: IConfig;
-}
-
 export interface IEmail {
   to: string; // TODO can be array
   subject: string;
@@ -17,7 +13,7 @@ export interface IEmailMgr {
   sendEmail(email: IEmail): Promise<SentMessageInfo>;
 }
 
-export function newEmailMgr({ config }: IEmailMgrProps): IEmailMgr {
+export function newEmailMgr(config: IConfig): IEmailMgr {
   
   const transport = nodemailer.createTransport(config.smtp.transportOptions);
 

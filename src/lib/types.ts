@@ -1,3 +1,6 @@
+export type INumStr = number | string;
+export type INumStrNullable = number | string | null;
+
 export interface ISessionUser {
   id?: string | null;
 }
@@ -45,15 +48,15 @@ export type IUser = WithGeoLocation<WithAuditFull<{
 export type IUserPublic = Omit<IUser, 'password' & 'password_hash'>;
 
 export enum EntityKindEnum {
-  POSTS = 'posts',
   ADVERTS = 'adverts',
   ARTICLES = 'articles',
+  POSTS = 'posts',
   USERS = 'users',
 }
 
 export enum AssetPurposeEnum {
-  POST_IMAGE = 'post-image',
   ADVERT_IMAGE = 'advert-image',
+  POST_IMAGE = 'post-image',
 }
 
 export enum AssetTypeEnum {

@@ -1,10 +1,6 @@
 import { Pool, Result } from 'pg';
 import { hash, log, newUuid } from './utils';
 
-export interface IDbProps {
-  pool: Pool;
-}
-
 export interface IDb {
   query(text: string, values?: any[], name?: string | null): Promise<IDbQueryResult>;
   queryMeta(text: string, values?: any[], name?: string | null): Promise<IDbQueryResultMeta>;
@@ -18,7 +14,7 @@ export interface IDb {
 
 export interface IDbQueryResult {
   result: Result;
-  error: any;
+  error?: string | null;
 }
 
 export interface IDbQueryResultWithRow<TRow = any> extends IDbQueryResult {
@@ -26,11 +22,11 @@ export interface IDbQueryResultWithRow<TRow = any> extends IDbQueryResult {
 }
 
 export interface IDbQueryResultMeta {
-  error: any;
-  row_count?: number;
+  error?: string | null;
+  row_count: number;
 }
 
-export function newDb({ pool }: IDbProps): IDb {
+export function newDb(pool: Pool): IDb {
 
   function placeHolder(idx: number): string {
     return '$' + idx;

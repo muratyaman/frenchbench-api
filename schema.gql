@@ -1,0 +1,360 @@
+scalar Date
+scalar DateTime
+#scalar JSON
+
+type Query {
+  me: User!
+  user(filter: UserFilter): User!
+  users(filter: UsersFilter): UserList!
+  post(filter: PostFilter): Post!
+  posts(filter: PostsFilter): PostList!
+  advert(filter: AdvertFilter): Advert!
+  adverts(filter: AdvertsFilter): AdvertList!
+}
+
+type Mutation {
+  createPost(data: CreatePostInput!): CreatePostOutput!
+  updatePost(id: ID!, data: UpdatePostInput!): UpdatePostOutput!
+  deletePost(id: ID!): DeletePostOutput!
+  createAdvert(data: CreateAdvertInput!): CreateAdvertOutput!
+  updateAdvert(id: ID!, data: UpdateAdvertInput!): UpdateAdvertOutput!
+  deleteAdvert(id: ID!): DeleteAdvertOutput!
+}
+
+type ListMeta {
+  row_count: Int!
+}
+
+type User {
+  id: ID!
+  username: String!
+  first_name: String
+  last_name: String
+  email: String
+  phone: String
+  headline: String
+  neighbourhood: String
+  
+  lat: Float
+  lon: Float
+  geo_accuracy: Int
+  geo_updated_at: Date
+
+  created_at: Date
+  created_by: String
+  updated_at: Date
+  updated_by: String
+
+  assets: AssetRelationList!
+}
+
+input UserFilter {
+  id: ID
+  username: String
+}
+
+input UsersFilter {
+  q: String
+  offset: Int
+  limit: Int
+  lat: Float
+  lon: Float
+  user_id: ID
+  username: String
+}
+
+type UserList {
+  data: [User!]!
+  meta: ListMeta!
+}
+
+type PostSummary {
+  id: ID!
+  slug: String!
+  title: String!
+  tags: String!
+  
+  user_id: ID!
+  username: String!
+  
+  lat: Float
+  lon: Float
+  geo_accuracy: Int
+
+  created_at: Date
+  created_by: String
+
+  assets: AssetRelationList!
+}
+
+type Post {
+  id: ID!
+  slug: String!
+  title: String!
+  content: String!
+  tags: String!
+  
+  user_id: ID!
+  username: String!
+  
+  lat: Float
+  lon: Float
+  geo_accuracy: Int
+
+  created_at: Date
+  created_by: String
+  updated_at: Date
+  updated_by: String
+
+  assets: AssetRelationList!
+}
+
+input PostFilter {
+  id: ID
+  user_id: ID
+  username: String
+  slug: String
+}
+
+input PostsFilter {
+  q: String
+  offset: Int
+  limit: Int
+  lat: Float
+  lon: Float
+  tags: String
+  user_id: ID
+  username: String
+}
+
+type PostList {
+  data: [PostSummary!]!
+  meta: ListMeta!
+}
+
+input CreatePostInput {
+  slug: String!
+  title: String!
+  content: String!
+  tags: String!
+
+  lat: Float
+  lon: Float
+  geo_accuracy: Int
+}
+
+type CreatePostOutput {
+  id: ID!
+  success: Boolean!
+  error: String
+}
+
+input UpdatePostInput {
+  slug: String!
+  title: String!
+  content: String!
+  tags: String!
+
+  lat: Float
+  lon: Float
+  geo_accuracy: Int
+}
+
+type UpdatePostOutput {
+  success: Boolean!
+  error: String
+}
+
+type DeletePostOutput {
+  success: Boolean!
+  error: String
+}
+
+input AdvertFilter {
+  id: ID
+  user_id: ID
+  username: String
+  slug: String
+}
+
+input AdvertsFilter {
+  q: String
+  offset: Int
+  limit: Int
+  lat: Float
+  lon: Float
+  tags: String
+  user_id: ID
+  username: String
+}
+
+type AdvertList {
+  data: [AdvertSummary!]!
+  meta: ListMeta!
+}
+
+type AdvertSummary {
+  id: ID!
+  slug: String!
+  title: String!
+  content: String!
+  tags: String!
+
+  user_id: ID!
+  username: String!
+
+  lat: Float
+  lon: Float
+  geo_accuracy: Int
+
+  created_at: Date
+  created_by: String
+
+  is_buying: Int!
+  is_service: Int!
+  price: Float
+  currency: String!
+
+  assets: AssetRelationList!
+}
+
+type Advert {
+  id: ID!
+  slug: String!
+  title: String!
+  content: String!
+  tags: String!
+
+  user_id: ID!
+
+  lat: Float
+  lon: Float
+  geo_accuracy: Int
+
+  created_at: Date
+  created_by: String
+  updated_at: Date
+  updated_by: String
+
+  is_buying: Int!
+  is_service: Int!
+  price: Float
+  currency: String!
+
+  assets: AssetRelationList!
+}
+
+input CreateAdvertInput {
+  slug: String!
+  title: String!
+  content: String!
+  tags: String!
+
+  lat: Float
+  lon: Float
+  geo_accuracy: Int
+
+  is_buying: Int!
+  is_service: Int!
+  price: Float
+  currency: String!
+}
+
+type CreateAdvertOutput {
+  id: ID!
+  success: Boolean!
+  error: String
+}
+
+input UpdateAdvertInput {
+  slug: String!
+  title: String!
+  content: String!
+  tags: String!
+
+  lat: Float
+  lon: Float
+  geo_accuracy: Int
+
+  is_buying: Int!
+  is_service: Int!
+  price: Float
+  currency: String!
+}
+
+type UpdateAdvertOutput {
+  success: Boolean!
+  error: String
+}
+
+type DeleteAdvertOutput {
+  success: Boolean!
+  error: String
+}
+
+type AssetRelationList {
+  parent_entity_kind: EntityKindEnum!
+  parent_entity_id: ID!
+  data: [AssetRelation!]!
+  meta: ListMeta!
+}
+
+type Asset {
+  id: ID!
+  asset_type: AssetTypeEnum!
+  media_type: String!
+  label: String!
+  url: String!
+  meta: AssetMeta!
+
+  created_at: Date
+  created_by: String
+  updated_at: Date
+  updated_by: String
+}
+
+type AssetMeta {
+  Key: String!
+  ETag: String
+  Bucket: String
+  Location: String!
+  file_size: Int!
+}
+
+type AssetRelation {
+  id: ID!
+  parent_entity_kind: EntityKindEnum!
+  parent_entity_id: ID!
+  purpose: AssetPurposeEnum!
+  meta: String # JSON
+
+  asset_id: ID!
+  asset: Asset!
+
+  created_at: Date
+  created_by: String
+  updated_at: Date
+  updated_by: String
+}
+
+enum EntityKindEnum {
+  POSTS
+  ADVERTS
+  ARTICLES
+  USERS
+}
+
+enum AssetPurposeEnum {
+  POST_IMAGE
+  ADVERT_IMAGE
+}
+
+enum AssetTypeEnum {
+  IMAGE
+}
+
+enum AssetMediaTypeEnum {
+  IMAGE_JPEG
+  IMAGE_PNG
+}
+

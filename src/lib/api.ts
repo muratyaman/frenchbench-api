@@ -7,14 +7,7 @@ import { ISecurityMgr } from './security';
 import { IEmailMgr } from './emails';
 import { IDb } from './db';
 import { IConfig } from './config';
-import { IAdvertDetailsModel, IAdvertSummaryModel, IArticleDetailsModel, IPostDetailsModel, IPostSummaryModel, IUser, IUserPublic } from './types';
-
-export interface IApiProps {
-  config: IConfig;
-  db: IDb;
-  securityMgr: ISecurityMgr;
-  emailMgr: IEmailMgr;
-}
+import { IAdvertDetailsModel, IAdvertSummaryModel, IArticleDetailsModel, INumStrNullable, IPostDetailsModel, IPostSummaryModel, IUser, IUserPublic } from './types';
 
 export interface IApiInput<TInput = any> {
   user?: any;
@@ -70,10 +63,10 @@ export type IPostSearchInput = IApiInput<{
   username?: string | null;
   q?: string | null;
   tag?: string | null;
-  min_price?: string | null;
-  max_price?: string | null;
-  offset?: string | null;
-  limit?: string | null;
+  min_price?: INumStrNullable;
+  max_price?: INumStrNullable;
+  offset?: INumStrNullable;
+  limit?: INumStrNullable;
   with_assets?: boolean | null;
 }>;
 
@@ -84,17 +77,23 @@ export type IAdvertSearchInput = IApiInput<{
   username?: string | null;
   q?: string | null;
   tag?: string | null;
-  min_price?: string | null;
-  max_price?: string | null;
-  offset?: string | null;
-  limit?: string | null;
+  min_price?: INumStrNullable;
+  max_price?: INumStrNullable;
+  offset?: INumStrNullable;
+  limit?: INumStrNullable;
   with_assets?: boolean | null;
 }>;
 
 export type IAdvertSearchOutput = Promise<IApiResult<Array<IAdvertSummaryModel>>>;
 
+export type IApi = ReturnType<typeof newApi>;
 
-export function newApi({ config, db, securityMgr, emailMgr }: IApiProps) {
+export function newApi(
+  config: IConfig,
+  securityMgr: ISecurityMgr,
+  emailMgr: IEmailMgr,
+  db: IDb,
+) {
 
   // TODO: captcha
   async function signup({ input }: ISignUpInput): ISignUpOutput {
@@ -279,7 +278,7 @@ export function newApi({ config, db, securityMgr, emailMgr }: IApiProps) {
     return { data, error };
   }
 
-  async function user_search({ user, input = { lat1: 0, lon1: 0, lat2: 0, lon2: 0, with_assets: false } }) {
+  async function user_search({ user, input = { q: '', lat1: 0, lon1: 0, lat2: 0, lon2: 0, with_assets: false } }) {
     let data = [];
     // eslint-disable-next-line prefer-const
     let { lat1 = 0, lon1 = 0, lat2 = 0, lon2 = 0, with_assets } = input;
@@ -419,12 +418,13 @@ export function newApi({ config, db, securityMgr, emailMgr }: IApiProps) {
   }
 
   async function post_search({ user, input }) {
-    let data = [], meta = {}, ph = '';
+    let data = [], ph = '';
     // eslint-disable-next-line prefer-const
-    let { user_id = null, username = null, q = '', tag = '', offset = 0, limit = 10, with_assets = false } = input;
-    offset = Number.parseInt(offset);
-    limit = Number.parseInt(limit);
-    if (100 < limit) limit = 100;
+    let { user_id = null, username = null, q = '', tag = '', offset = '0', limit = '10', with_assets = false } = input;
+    let myOffset = Number.parseInt(`${offset}`);
+    if (myOffset < 0) myOffset = 0;
+    let myLimit = Number.parseInt(`${limit}`);
+    if (100 < myLimit) myLimit = 100;
     const conditions = [], params = [];
     if (user_id) {
       params.push(user_id);
@@ -447,9 +447,9 @@ export function newApi({ config, db, securityMgr, emailMgr }: IApiProps) {
     
     const paramsNoPagination = [...params];
 
-    params.push(offset);
+    params.push(myOffset);
     const offsetStr = ' OFFSET ' + db.placeHolder(params.length);
-    params.push(limit);
+    params.push(myLimit);
     const limitStr = ' LIMIT ' + db.placeHolder(params.length);
 
     const textNoPagination = `
@@ -465,11 +465,11 @@ ORDER BY p.created_at DESC
     
     const text = textNoPagination + offsetStr + limitStr;
     const qryName = 'posts-text-search-' + hash(text);
-    const { result, error: findError } = await db.query(text, params, );
+    const { result, error: findError } = await db.query(text, params);
     if (findError) throw findError;
     data = result && result.rows ? result.rows : [];
 
-    meta = await db.queryMeta(textNoPagination, paramsNoPagination, 'meta-' + qryName);
+    const meta = await db.queryMeta(textNoPagination, paramsNoPagination, 'meta-' + qryName);
 
     if (with_assets && data.length) {
       // with side effect on data
@@ -518,10 +518,11 @@ ORDER BY p.created_at DESC
   async function article_search({ user, input }) {
     let data = [];
     // eslint-disable-next-line prefer-const
-    let { q = '', offset = 0, limit = 10, with_assets = false } = input;
-    offset = Number.parseInt(offset);
-    limit = Number.parseInt(limit);
-    if (100 < limit) limit = 100;
+    let { q = '', offset = '0', limit = '10', with_assets = false } = input;
+    let myOffset = Number.parseInt(`${offset}`);
+    if (myOffset < 0) myOffset = 0;
+    let myLimit = Number.parseInt(`${limit}`);
+    if (100 < myLimit) myLimit = 100;
     // do not include large records e.g. avoid returning large text fields
     const text = 'SELECT a.id, a.slug, a.title, a.keywords, a.created_at, a.updated_at FROM ' + _.TBL_ARTICLE + ' a'
       + ' WHERE (a.title LIKE $1)'
@@ -530,7 +531,7 @@ ORDER BY p.created_at DESC
       + ' ORDER BY a.title'
       + ' OFFSET $2'
       + ' LIMIT $3';
-    const { result, error: findError } = await db.query(text, [`%${q}%`, offset, limit], 'article-text-search');
+    const { result, error: findError } = await db.query(text, [`%${q}%`, myOffset, myLimit], 'article-text-search');
     if (findError) throw findError;
     data = result && result.rows ? result.rows : [];
 
@@ -595,9 +596,9 @@ ORDER BY p.created_at DESC
   async function asset_search({ user, input }) {
     let data = [];
     const { ids = [], offset = '0', limit = '100' } = input;
-    let myOffset = Number.parseInt(offset);
+    let myOffset = Number.parseInt(`${offset}`);
     if (myOffset < 0) myOffset = 0;
-    let myLimit = Number.parseInt(limit);
+    let myLimit = Number.parseInt(`${limit}`);
     if (100 < myLimit) myLimit = 100;
     const conditions = [];
     const params = [];
@@ -799,15 +800,17 @@ ORDER BY p.created_at DESC
   }
 
   async function advert_search({ user, input }: IAdvertSearchInput): IAdvertSearchOutput {
-    let data = [], meta = null, ph = '';
+    let data = [], ph = '';
     // eslint-disable-next-line prefer-const
     let { user_id = null, username = null, q = '', tag = '', min_price = '-1', max_price = '-1', offset = '0', limit = '10', with_assets = false } = input;
-    const minPrice = Number.parseInt(min_price);
-    const maxPrice = Number.parseInt(max_price);
-    let myOffset = Number.parseInt(offset);
+    const minPrice = Number.parseInt(`${min_price}`);
+    const maxPrice = Number.parseInt(`${max_price}`);
+    
+    let myOffset = Number.parseInt(`${offset}`);
     if (myOffset < 0) myOffset = 0;
-    let myLimit = Number.parseInt(limit);
+    let myLimit = Number.parseInt(`${limit}`);
     if (100 < myLimit) myLimit = 100;
+
     const conditions = [], params = [];
     if (user_id) {
       params.push(user_id);
@@ -861,7 +864,7 @@ ORDER BY a.created_at DESC
     if (findError) throw findError;
     data = result && result.rows ? result.rows : [];
 
-    meta = await db.queryMeta(textNoPagination, paramsNoPagination, 'meta-' + qryName);
+    const meta = await db.queryMeta(textNoPagination, paramsNoPagination, 'meta-' + qryName);
 
     if (with_assets && data.length) {
       // with side effect on data

@@ -7,11 +7,7 @@ import * as _ from './constants';
 import { log } from './utils';
 import { IConfig } from './config';
 
-export interface IS3ClientProps {
-  config: IConfig;
-}
-
-export function newS3Client({ config }: IS3ClientProps): AWS.S3 {
+export function newS3Client(config: IConfig): AWS.S3 {
   const { accessKeyId, secretAccessKey } = config.s3;
   return new AWS.S3({ accessKeyId, secretAccessKey });
 }
@@ -21,12 +17,14 @@ export interface IFileMgrProps {
   s3: AWS.S3;
 }
 
+export type FileSizeType = string | 'small' | 'medium' | 'large';
+
 export interface IFileMgr {
   receiveFiles(req: Request): Promise<IReceivedProps>;
   readStreamToBuffer(filePath: string): Promise<Buffer>;
-  resizeAndUpload(readBuffer: Buffer, file_name: string, size: number): Promise<any>;
+  resizeAndUpload(readBuffer: Buffer, file_name: string, size: FileSizeType): Promise<any>;
   resizeImage(readBuffer: Buffer, widthIn: number): Promise<Buffer>;
-  s3UploadFile(Body: Buffer, file_name: string, size: number): Promise<any>;
+  s3UploadFile(Body: Buffer, file_name: string, size: FileSizeType): Promise<any>;
   checkFileType(file: IFileObj): boolean;
   checkFileSize(file: IFileObj): boolean;
   pruneFileName(file: IFileObj): IFileObj;
@@ -44,7 +42,7 @@ export interface IReceivedProps {
   files: any;
 }
 
-export function newFileMgr({ config, s3 }: IFileMgrProps): IFileMgr {
+export function newFileMgr(config: IConfig, s3: AWS.S3): IFileMgr {
   const { Bucket, ACL, folders } = config.s3;
   const formOptions = { multiples: true, keepExtensions: true, hash: 'sha1' };
 
@@ -76,7 +74,7 @@ export function newFileMgr({ config, s3 }: IFileMgrProps): IFileMgr {
     return sharp(filePath).toBuffer();
   }
 
-  async function resizeAndUpload(readBuffer: Buffer, file_name: string, size: number): Promise<any> {
+  async function resizeAndUpload(readBuffer: Buffer, file_name: string, size: FileSizeType): Promise<any> {
     let result: any = {};
     try {
       const image = await resizeImage(readBuffer, _.MAX_FILE_DIMS[size]);
@@ -95,7 +93,7 @@ export function newFileMgr({ config, s3 }: IFileMgrProps): IFileMgr {
     return sharp(readBuffer).resize({ width }).toBuffer();
   }
 
-  async function s3UploadFile(Body: Buffer, file_name: string, size: number): Promise<any> {
+  async function s3UploadFile(Body: Buffer, file_name: string, size: FileSizeType): Promise<any> {
     const params = {
       Bucket,
       ACL,

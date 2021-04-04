@@ -1,15 +1,17 @@
 import { Request, Response } from 'express';
-import { ErrUnauthorized, ErrUnknownAction, log, newUuid } from '../../lib';
+import { ErrUnauthorized, ErrUnknownAction, IConfig, ICookieMgr, IDb, ISecurityMgr, log, newUuid } from '../../lib';
 
-export interface IApiHandlerProps {
-  api: any;
-  config: any;
-  cookieMgr: any;
-  db: any;
-  securityMgr: any;
+export interface IApiHandler {
+  (req: Request, res: Response): Promise<void>;
 }
 
-export function makeApiHandler({ api, config, cookieMgr, db, securityMgr }: IApiHandlerProps) {
+export function makeApiHandler(
+  config: IConfig,
+  cookieMgr: ICookieMgr,
+  securityMgr: ISecurityMgr,
+  db: IDb,
+  api: any,
+): IApiHandler {
 
   async function handleApi(req: Request, res: Response): Promise<void> {
     const t1 = new Date();

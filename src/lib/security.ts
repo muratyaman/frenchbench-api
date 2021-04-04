@@ -7,11 +7,6 @@ import { IConfig } from './config';
 import { ISessionUserAndError } from './types';
 import { ICookieMgr } from './cookies';
 
-export interface ISecurityMgrProps {
-  config: IConfig;
-  cookieMgr: ICookieMgr;
-}
-
 export interface ISecurityMgr {
   getSessionUser(req: Request): ISessionUserAndError,
   pruneUsername(username: string): string,
@@ -21,7 +16,7 @@ export interface ISecurityMgr {
   hideSensitiveUserProps<T = Record<string, any>>(row: T): Omit<T, 'password' & 'password_hash'>;
 }
 
-export function newSecurityMgr({ config, cookieMgr }: ISecurityMgrProps): ISecurityMgr {
+export function newSecurityMgr(config: IConfig, cookieMgr: ICookieMgr): ISecurityMgr {
 
   function getSessionUser(req: Request): ISessionUserAndError {
     let user = null, error = null;

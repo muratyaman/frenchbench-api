@@ -7,4 +7,5 @@ export * from './emails';
 export * from './errors';
 export * from './files';
 export * from './security';
+export * from './types';
 export * from './utils';

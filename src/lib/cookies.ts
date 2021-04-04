@@ -1,16 +1,12 @@
 import cookie from 'cookie';
 import { IConfig } from './config';
 
-export interface ICookieMgrProps {
-  config: IConfig;
-}
-
 export interface ICookieMgr {
   serialize(userSecret: string): string;
   parse(cookieStr: string): any;
 }
 
-export function newCookieMgr({ config }: ICookieMgrProps): ICookieMgr {
+export function newCookieMgr(config: IConfig): ICookieMgr {
   const { secretKeyName, sameSite, secure, maxAge, httpOnly, path } = config.cookies;
 
   function serialize(userSecret: string): string {

@@ -1,6 +1,6 @@
 import 'dotenv/config'; // read .env file
 import WebSocket from 'ws';
-import { newUuid, log } from './lib';
+import { newUuid, log, IConfig, ISecurityMgr, IApi } from './lib';
 
 export const MSG_KIND_SES    = 'ses'; // connected, server => session ID => client
 export const MSG_KIND_GEO    = 'geo'; // geolocation update
@@ -56,7 +56,13 @@ export class FbHub {
   }
 }
 
-export async function newWebSocketServer({ config, securityMgr, api }) {
+export type IWebSocketServer = ReturnType<typeof newWebSocketServer>;
+
+export async function newWebSocketServer(
+  config: IConfig,
+  securityMgr: ISecurityMgr,
+  api: IApi,
+) {
 
   const webSocketServer = new WebSocket.Server({ noServer: true });
   const hub = new FbHub();
