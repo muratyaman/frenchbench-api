@@ -3,7 +3,7 @@ import { AssetPurposeEnum } from '../enums';
 import { AssetTypeEnum } from '../enums';
 import { EntityKindEnum } from '../enums';
 import { GraphQLResolveInfo, GraphQLScalarType, GraphQLScalarTypeConfig } from 'graphql';
-import { UserMapper, UserListMapper, AdvertMapper, AdvertListMapper, PostMapper, PostListMapper, AssetMapper, AssetRelationListMapper } from '../mappers';
+import { UserMapper, UserSummaryMapper, UserListMapper, AdvertMapper, AdvertSummaryMapper, AdvertListMapper, PostMapper, PostSummaryMapper, PostListMapper, AssetMapper, AssetRelationListMapper, ListMetaMapper } from '../mappers';
 import { IContext } from '../types';
 export type Maybe<T> = T | null;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
@@ -30,6 +30,7 @@ export type Advert = {
   content: Scalars['String'];
   tags: Scalars['String'];
   user_id: Scalars['ID'];
+  owner?: Maybe<User>;
   lat?: Maybe<Scalars['Float']>;
   lon?: Maybe<Scalars['Float']>;
   geo_accuracy?: Maybe<Scalars['Int']>;
@@ -41,7 +42,7 @@ export type Advert = {
   is_service: Scalars['Int'];
   price?: Maybe<Scalars['Float']>;
   currency: Scalars['String'];
-  assets: AssetRelationList;
+  assets?: Maybe<AssetRelationList>;
 };
 
 export type AdvertFilter = {
@@ -70,12 +71,11 @@ export type AdvertSummary = {
   lon?: Maybe<Scalars['Float']>;
   geo_accuracy?: Maybe<Scalars['Int']>;
   created_at?: Maybe<Scalars['Date']>;
-  created_by?: Maybe<Scalars['String']>;
   is_buying: Scalars['Int'];
   is_service: Scalars['Int'];
   price?: Maybe<Scalars['Float']>;
   currency: Scalars['String'];
-  assets: AssetRelationList;
+  assets?: Maybe<AssetRelationList>;
 };
 
 export type AdvertsFilter = {
@@ -124,7 +124,7 @@ export type AssetRelation = {
   purpose: AssetPurposeEnum;
   meta?: Maybe<Scalars['String']>;
   asset_id: Scalars['ID'];
-  asset: Asset;
+  asset?: Maybe<Asset>;
   created_at?: Maybe<Scalars['Date']>;
   created_by?: Maybe<Scalars['String']>;
   updated_at?: Maybe<Scalars['Date']>;
@@ -133,7 +133,7 @@ export type AssetRelation = {
 
 export type AssetRelationList = {
   __typename?: 'AssetRelationList';
-  parent_entity_kind: EntityKindEnum;
+  parent_entity_kind?: Maybe<EntityKindEnum>;
   parent_entity_id: Scalars['ID'];
   data: Array<AssetRelation>;
   meta: ListMeta;
@@ -250,7 +250,7 @@ export type Post = {
   content: Scalars['String'];
   tags: Scalars['String'];
   user_id: Scalars['ID'];
-  username: Scalars['String'];
+  owner: User;
   lat?: Maybe<Scalars['Float']>;
   lon?: Maybe<Scalars['Float']>;
   geo_accuracy?: Maybe<Scalars['Int']>;
@@ -258,7 +258,7 @@ export type Post = {
   created_by?: Maybe<Scalars['String']>;
   updated_at?: Maybe<Scalars['Date']>;
   updated_by?: Maybe<Scalars['String']>;
-  assets: AssetRelationList;
+  assets?: Maybe<AssetRelationList>;
 };
 
 export type PostFilter = {
@@ -286,8 +286,7 @@ export type PostSummary = {
   lon?: Maybe<Scalars['Float']>;
   geo_accuracy?: Maybe<Scalars['Int']>;
   created_at?: Maybe<Scalars['Date']>;
-  created_by?: Maybe<Scalars['String']>;
-  assets: AssetRelationList;
+  assets?: Maybe<AssetRelationList>;
 };
 
 export type PostsFilter = {
@@ -385,7 +384,9 @@ export type User = {
   first_name?: Maybe<Scalars['String']>;
   last_name?: Maybe<Scalars['String']>;
   email?: Maybe<Scalars['String']>;
+  email_verified: Scalars['Boolean'];
   phone?: Maybe<Scalars['String']>;
+  phone_verified: Scalars['Boolean'];
   headline?: Maybe<Scalars['String']>;
   neighbourhood?: Maybe<Scalars['String']>;
   lat?: Maybe<Scalars['Float']>;
@@ -396,7 +397,7 @@ export type User = {
   created_by?: Maybe<Scalars['String']>;
   updated_at?: Maybe<Scalars['Date']>;
   updated_by?: Maybe<Scalars['String']>;
-  assets: AssetRelationList;
+  assets?: Maybe<AssetRelationList>;
 };
 
 export type UserFilter = {
@@ -406,8 +407,21 @@ export type UserFilter = {
 
 export type UserList = {
   __typename?: 'UserList';
-  data: Array<User>;
+  data: Array<UserSummary>;
   meta: ListMeta;
+};
+
+export type UserSummary = {
+  __typename?: 'UserSummary';
+  id: Scalars['ID'];
+  username: Scalars['String'];
+  email_verified: Scalars['Boolean'];
+  phone_verified: Scalars['Boolean'];
+  lat?: Maybe<Scalars['Float']>;
+  lon?: Maybe<Scalars['Float']>;
+  geo_accuracy?: Maybe<Scalars['Int']>;
+  created_at?: Maybe<Scalars['Date']>;
+  assets?: Maybe<AssetRelationList>;
 };
 
 export type UsersFilter = {
@@ -505,7 +519,7 @@ export type ResolversTypes = {
   Int: ResolverTypeWrapper<any>;
   AdvertFilter: ResolverTypeWrapper<any>;
   AdvertList: ResolverTypeWrapper<AdvertListMapper>;
-  AdvertSummary: ResolverTypeWrapper<any>;
+  AdvertSummary: ResolverTypeWrapper<AdvertSummaryMapper>;
   AdvertsFilter: ResolverTypeWrapper<any>;
   Asset: ResolverTypeWrapper<AssetMapper>;
   AssetMediaTypeEnum: AssetMediaTypeEnum;
@@ -524,12 +538,12 @@ export type ResolversTypes = {
   DeleteAdvertOutput: ResolverTypeWrapper<any>;
   DeletePostOutput: ResolverTypeWrapper<any>;
   EntityKindEnum: EntityKindEnum;
-  ListMeta: ResolverTypeWrapper<any>;
+  ListMeta: ResolverTypeWrapper<ListMetaMapper>;
   Mutation: ResolverTypeWrapper<{}>;
   Post: ResolverTypeWrapper<PostMapper>;
   PostFilter: ResolverTypeWrapper<any>;
   PostList: ResolverTypeWrapper<PostListMapper>;
-  PostSummary: ResolverTypeWrapper<any>;
+  PostSummary: ResolverTypeWrapper<PostSummaryMapper>;
   PostsFilter: ResolverTypeWrapper<any>;
   Query: ResolverTypeWrapper<{}>;
   UpdateAdvertInput: ResolverTypeWrapper<any>;
@@ -539,6 +553,7 @@ export type ResolversTypes = {
   User: ResolverTypeWrapper<UserMapper>;
   UserFilter: ResolverTypeWrapper<any>;
   UserList: ResolverTypeWrapper<UserListMapper>;
+  UserSummary: ResolverTypeWrapper<UserSummaryMapper>;
   UsersFilter: ResolverTypeWrapper<any>;
 };
 
@@ -551,7 +566,7 @@ export type ResolversParentTypes = {
   Int: any;
   AdvertFilter: any;
   AdvertList: AdvertListMapper;
-  AdvertSummary: any;
+  AdvertSummary: AdvertSummaryMapper;
   AdvertsFilter: any;
   Asset: AssetMapper;
   AssetMeta: any;
@@ -566,12 +581,12 @@ export type ResolversParentTypes = {
   DateTime: any;
   DeleteAdvertOutput: any;
   DeletePostOutput: any;
-  ListMeta: any;
+  ListMeta: ListMetaMapper;
   Mutation: {};
   Post: PostMapper;
   PostFilter: any;
   PostList: PostListMapper;
-  PostSummary: any;
+  PostSummary: PostSummaryMapper;
   PostsFilter: any;
   Query: {};
   UpdateAdvertInput: any;
@@ -581,6 +596,7 @@ export type ResolversParentTypes = {
   User: UserMapper;
   UserFilter: any;
   UserList: UserListMapper;
+  UserSummary: UserSummaryMapper;
   UsersFilter: any;
 };
 
@@ -591,6 +607,7 @@ export type AdvertResolvers<ContextType = IContext, ParentType extends Resolvers
   content?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   tags?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   user_id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  owner?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
   lat?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
   lon?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
   geo_accuracy?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
@@ -602,7 +619,7 @@ export type AdvertResolvers<ContextType = IContext, ParentType extends Resolvers
   is_service?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   price?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
   currency?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  assets?: Resolver<ResolversTypes['AssetRelationList'], ParentType, ContextType>;
+  assets?: Resolver<Maybe<ResolversTypes['AssetRelationList']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -624,12 +641,11 @@ export type AdvertSummaryResolvers<ContextType = IContext, ParentType extends Re
   lon?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
   geo_accuracy?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   created_at?: Resolver<Maybe<ResolversTypes['Date']>, ParentType, ContextType>;
-  created_by?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   is_buying?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   is_service?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   price?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
   currency?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  assets?: Resolver<ResolversTypes['AssetRelationList'], ParentType, ContextType>;
+  assets?: Resolver<Maybe<ResolversTypes['AssetRelationList']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -658,7 +674,7 @@ export type AssetMetaResolvers<ContextType = IContext, ParentType extends Resolv
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export type AssetPurposeEnumResolvers = EnumResolverSignature<{ POST_IMAGE?: any, ADVERT_IMAGE?: any }, ResolversTypes['AssetPurposeEnum']>;
+export type AssetPurposeEnumResolvers = EnumResolverSignature<{ USER_PROFILE_IMAGE?: any, POST_IMAGE?: any, ADVERT_IMAGE?: any, ARTICLE_IMAGE?: any }, ResolversTypes['AssetPurposeEnum']>;
 
 export type AssetRelationResolvers<ContextType = IContext, ParentType extends ResolversParentTypes['AssetRelation'] = ResolversParentTypes['AssetRelation']> = {
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
@@ -667,7 +683,7 @@ export type AssetRelationResolvers<ContextType = IContext, ParentType extends Re
   purpose?: Resolver<ResolversTypes['AssetPurposeEnum'], ParentType, ContextType>;
   meta?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   asset_id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  asset?: Resolver<ResolversTypes['Asset'], ParentType, ContextType>;
+  asset?: Resolver<Maybe<ResolversTypes['Asset']>, ParentType, ContextType>;
   created_at?: Resolver<Maybe<ResolversTypes['Date']>, ParentType, ContextType>;
   created_by?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   updated_at?: Resolver<Maybe<ResolversTypes['Date']>, ParentType, ContextType>;
@@ -676,7 +692,7 @@ export type AssetRelationResolvers<ContextType = IContext, ParentType extends Re
 };
 
 export type AssetRelationListResolvers<ContextType = IContext, ParentType extends ResolversParentTypes['AssetRelationList'] = ResolversParentTypes['AssetRelationList']> = {
-  parent_entity_kind?: Resolver<ResolversTypes['EntityKindEnum'], ParentType, ContextType>;
+  parent_entity_kind?: Resolver<Maybe<ResolversTypes['EntityKindEnum']>, ParentType, ContextType>;
   parent_entity_id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   data?: Resolver<Array<ResolversTypes['AssetRelation']>, ParentType, ContextType>;
   meta?: Resolver<ResolversTypes['ListMeta'], ParentType, ContextType>;
@@ -742,7 +758,7 @@ export type PostResolvers<ContextType = IContext, ParentType extends ResolversPa
   content?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   tags?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   user_id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  username?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  owner?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
   lat?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
   lon?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
   geo_accuracy?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
@@ -750,7 +766,7 @@ export type PostResolvers<ContextType = IContext, ParentType extends ResolversPa
   created_by?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   updated_at?: Resolver<Maybe<ResolversTypes['Date']>, ParentType, ContextType>;
   updated_by?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  assets?: Resolver<ResolversTypes['AssetRelationList'], ParentType, ContextType>;
+  assets?: Resolver<Maybe<ResolversTypes['AssetRelationList']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -771,8 +787,7 @@ export type PostSummaryResolvers<ContextType = IContext, ParentType extends Reso
   lon?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
   geo_accuracy?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   created_at?: Resolver<Maybe<ResolversTypes['Date']>, ParentType, ContextType>;
-  created_by?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  assets?: Resolver<ResolversTypes['AssetRelationList'], ParentType, ContextType>;
+  assets?: Resolver<Maybe<ResolversTypes['AssetRelationList']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -804,7 +819,9 @@ export type UserResolvers<ContextType = IContext, ParentType extends ResolversPa
   first_name?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   last_name?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   email?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  email_verified?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   phone?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  phone_verified?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   headline?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   neighbourhood?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   lat?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
@@ -815,13 +832,26 @@ export type UserResolvers<ContextType = IContext, ParentType extends ResolversPa
   created_by?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   updated_at?: Resolver<Maybe<ResolversTypes['Date']>, ParentType, ContextType>;
   updated_by?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  assets?: Resolver<ResolversTypes['AssetRelationList'], ParentType, ContextType>;
+  assets?: Resolver<Maybe<ResolversTypes['AssetRelationList']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
 export type UserListResolvers<ContextType = IContext, ParentType extends ResolversParentTypes['UserList'] = ResolversParentTypes['UserList']> = {
-  data?: Resolver<Array<ResolversTypes['User']>, ParentType, ContextType>;
+  data?: Resolver<Array<ResolversTypes['UserSummary']>, ParentType, ContextType>;
   meta?: Resolver<ResolversTypes['ListMeta'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type UserSummaryResolvers<ContextType = IContext, ParentType extends ResolversParentTypes['UserSummary'] = ResolversParentTypes['UserSummary']> = {
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  username?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  email_verified?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  phone_verified?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  lat?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
+  lon?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
+  geo_accuracy?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  created_at?: Resolver<Maybe<ResolversTypes['Date']>, ParentType, ContextType>;
+  assets?: Resolver<Maybe<ResolversTypes['AssetRelationList']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -853,6 +883,7 @@ export type Resolvers<ContextType = IContext> = {
   UpdatePostOutput?: UpdatePostOutputResolvers<ContextType>;
   User?: UserResolvers<ContextType>;
   UserList?: UserListResolvers<ContextType>;
+  UserSummary?: UserSummaryResolvers<ContextType>;
 };
 
 

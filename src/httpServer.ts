@@ -4,15 +4,15 @@ import helmet from 'helmet';
 import { createServer } from 'http';
 import morgan from 'morgan';
 import responseTime from 'response-time';
-import { IApi, IConfig, ICookieMgr, IDb, IFileMgr, ISecurityMgr } from './lib';
+import { IApi, IConfig, CookieService, IDb, FileService, SecurityService } from './lib';
 import { makeApiHandler } from './routes/api';
 import { makeApiUploadHandler } from './routes/api/upload';
 
 export function newHttpServer(
   config: IConfig,
-  cookieMgr: ICookieMgr,
-  securityMgr: ISecurityMgr,
-  fileMgr: IFileMgr,
+  cookieMgr: CookieService,
+  securityMgr: SecurityService,
+  fileMgr: FileService,
   db: IDb,
   api: IApi,
 ) {

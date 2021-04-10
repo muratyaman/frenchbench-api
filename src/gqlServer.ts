@@ -5,6 +5,7 @@ import * as lib from './lib';
 import * as codegen from './codegen';
 import { IContext } from './types';
 import { IFactory } from './factory';
+import { ErrNotFound } from './lib';
 
 export function newGqlServer(f: IFactory): ApolloServer {
   const schemaFile = path.resolve(__dirname, '..', 'schema.gql');
@@ -34,9 +35,9 @@ export function makeResolvers(f: IFactory): codegen.Resolvers {
 
   async function findUser(
     input: { id?: string | null; username?: string | null; },
-    user: lib.ISessionUser,
-  ): Promise<lib.IUserPublic> {
-    let data: lib.IUserPublic;
+    user: lib.SessionUser,
+  ): Promise<lib.UserPublic> {
+    let data: lib.UserPublic;
     if (input.id) {
       const result1 = await f.api.user_retrieve({ user, input });
       data = result1.data;
@@ -47,6 +48,7 @@ export function makeResolvers(f: IFactory): codegen.Resolvers {
     }
     return data;
   }
+
 
   return {
     Query: {
@@ -63,6 +65,11 @@ export function makeResolvers(f: IFactory): codegen.Resolvers {
         if (!ctx.user) throw new lib.ErrUnauthorized();
         if (!args.filter.id && !args.filter.username) throw new lib.ErrNotFound();
         return findUser(args.filter, ctx.user);
+      },
+      users: async (_, args, ctx) => {
+        if (!ctx.user) throw new lib.ErrUnauthorized();
+        const { data, meta } = await f.api.user_search({ user: ctx.user, input: args.filter });
+        return { data: data ?? [], meta };
       },
       posts: async (_, args, ctx) => {
         if (!ctx.user) throw new lib.ErrUnauthorized();
@@ -83,7 +90,57 @@ export function makeResolvers(f: IFactory): codegen.Resolvers {
       username: p => p.username,
       first_name: p => p.first_name ?? null,
       last_name: p => p.last_name ?? null,
+      email: p => p.email ?? null,
+      email_verified: p => p.email_verified !== 0,
+      phone: p => p.phone ?? null,
+      phone_verified: p => p.phone_verified !== 0,
+      headline: p => p.headline ?? null,
+      neighbourhood: p => p.neighbourhood ?? null,
     },
+    Asset: {
+
+    },
+    Advert: {
+      owner: async (p, args, ctx) => {
+        const { data } = await f.api.user_retrieve({ id: p.user_id });
+        return data;
+      },
+      assets: async (p, args, ctx) => {
+        const { data = [], meta } = await f.api.entity_asset_search({
+          input: { parent_entity_kind: lib.EntityKindEnum.ADVERTS, parent_entity_ids: [ p.id ] },
+        });
+        return { data, meta, parent_entity_kind: lib.EntityKindEnum.ADVERTS, parent_entity_id: p.id };
+      },
+    },
+    Post: {
+      owner: async (p, args, ctx) => {
+        const { data } = await f.api.user_retrieve({ id: p.user_id });
+        return data;
+      },
+      assets: async (p, args, ctx) => {
+        const { data = [], meta } = await f.api.entity_asset_search({
+          input: { parent_entity_kind: lib.EntityKindEnum.POSTS, parent_entity_ids: [ p.id ] },
+        });
+        return { data, meta, parent_entity_kind: lib.EntityKindEnum.POSTS, parent_entity_id: p.id };
+      },
+    },
+    AssetRelation: {
+      asset: async (p, args, ctx) => {
+        if (p.asset) return p.asset;
+        const { data } = await f.api.asset_retrieve({ id: p.asset_id });
+        return data;
+      },
+    },
+    AssetRelationList: {
+      parent_entity_kind: p => p.parent_entity_kind ?? null,
+      parent_entity_id: p => p.parent_entity_id,
+      data: p => p.data,
+      meta: p => p.meta,
+    },
+    ListMeta: {
+      row_count: p => p.row_count,
+    },
+    // ENUMS ==============================================
     AssetMediaTypeEnum: {
       IMAGE_JPEG: lib.AssetMediaTypeEnum.IMAGE_JPEG,
       IMAGE_PNG: lib.AssetMediaTypeEnum.IMAGE_PNG,
@@ -100,6 +157,6 @@ export function makeResolvers(f: IFactory): codegen.Resolvers {
       ARTICLES: lib.EntityKindEnum.ARTICLES,
       POSTS: lib.EntityKindEnum.POSTS,
       USERS: lib.EntityKindEnum.USERS,
-    }
+    },
   }
 }

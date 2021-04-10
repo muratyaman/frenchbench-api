@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { ErrUnauthorized, ErrUnknownAction, IConfig, ICookieMgr, IDb, ISecurityMgr, log, newUuid } from '../../lib';
+import { ErrUnauthorized, ErrUnknownAction, IApi, IConfig, CookieService, IDb, SecurityService, log, newUuid } from '../../lib';
 
 export interface IApiHandler {
   (req: Request, res: Response): Promise<void>;
@@ -7,10 +7,10 @@ export interface IApiHandler {
 
 export function makeApiHandler(
   config: IConfig,
-  cookieMgr: ICookieMgr,
-  securityMgr: ISecurityMgr,
+  cookieMgr: CookieService,
+  securityMgr: SecurityService,
   db: IDb,
-  api: any,
+  api: IApi,
 ): IApiHandler {
 
   async function handleApi(req: Request, res: Response): Promise<void> {

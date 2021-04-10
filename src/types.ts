@@ -1,8 +1,7 @@
 import { IFactory } from './factory';
-import { ISessionUser } from './lib';
+import { SessionUser } from './lib';
 
 export interface IContext {
-  user?: ISessionUser;
+  user?: SessionUser;
   f: IFactory;
 }
-

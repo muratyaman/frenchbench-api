@@ -25,13 +25,30 @@ type ListMeta {
   row_count: Int!
 }
 
+type UserSummary {
+  id: ID!
+  username: String!
+  email_verified: Boolean!
+  phone_verified: Boolean!
+  
+  lat: Float
+  lon: Float
+  geo_accuracy: Int
+
+  created_at: Date
+
+  assets: AssetRelationList
+}
+
 type User {
   id: ID!
   username: String!
   first_name: String
   last_name: String
   email: String
+  email_verified: Boolean!
   phone: String
+  phone_verified: Boolean!
   headline: String
   neighbourhood: String
   
@@ -45,7 +62,7 @@ type User {
   updated_at: Date
   updated_by: String
 
-  assets: AssetRelationList!
+  assets: AssetRelationList
 }
 
 input UserFilter {
@@ -64,7 +81,7 @@ input UsersFilter {
 }
 
 type UserList {
-  data: [User!]!
+  data: [UserSummary!]!
   meta: ListMeta!
 }
 
@@ -73,18 +90,17 @@ type PostSummary {
   slug: String!
   title: String!
   tags: String!
-  
+
   user_id: ID!
   username: String!
-  
+
   lat: Float
   lon: Float
   geo_accuracy: Int
 
   created_at: Date
-  created_by: String
 
-  assets: AssetRelationList!
+  assets: AssetRelationList
 }
 
 type Post {
@@ -95,7 +111,7 @@ type Post {
   tags: String!
   
   user_id: ID!
-  username: String!
+  owner: User!
   
   lat: Float
   lon: Float
@@ -106,7 +122,7 @@ type Post {
   updated_at: Date
   updated_by: String
 
-  assets: AssetRelationList!
+  assets: AssetRelationList
 }
 
 input PostFilter {
@@ -208,14 +224,13 @@ type AdvertSummary {
   geo_accuracy: Int
 
   created_at: Date
-  created_by: String
 
   is_buying: Int!
   is_service: Int!
   price: Float
   currency: String!
 
-  assets: AssetRelationList!
+  assets: AssetRelationList
 }
 
 type Advert {
@@ -226,6 +241,7 @@ type Advert {
   tags: String!
 
   user_id: ID!
+  owner: User
 
   lat: Float
   lon: Float
@@ -241,7 +257,7 @@ type Advert {
   price: Float
   currency: String!
 
-  assets: AssetRelationList!
+  assets: AssetRelationList
 }
 
 input CreateAdvertInput {
@@ -293,7 +309,7 @@ type DeleteAdvertOutput {
 }
 
 type AssetRelationList {
-  parent_entity_kind: EntityKindEnum!
+  parent_entity_kind: EntityKindEnum
   parent_entity_id: ID!
   data: [AssetRelation!]!
   meta: ListMeta!
@@ -329,7 +345,7 @@ type AssetRelation {
   meta: String # JSON
 
   asset_id: ID!
-  asset: Asset!
+  asset: Asset
 
   created_at: Date
   created_by: String
@@ -345,8 +361,10 @@ enum EntityKindEnum {
 }
 
 enum AssetPurposeEnum {
+  USER_PROFILE_IMAGE
   POST_IMAGE
   ADVERT_IMAGE
+  ARTICLE_IMAGE
 }
 
 enum AssetTypeEnum {

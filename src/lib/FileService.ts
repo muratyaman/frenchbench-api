@@ -42,17 +42,20 @@ export interface IReceivedProps {
   files: any;
 }
 
-export function newFileMgr(config: IConfig, s3: AWS.S3): IFileMgr {
-  const { Bucket, ACL, folders } = config.s3;
-  const formOptions = { multiples: true, keepExtensions: true, hash: 'sha1' };
-
-  async function receiveFiles(req: Request): Promise<IReceivedProps> {
-    log('receiveFiles');
+export class FileService implements IFileMgr {
+  
+  constructor(private config: IConfig, private s3: AWS.S3) {
+    
+  }
+  
+  async receiveFiles(req: Request): Promise<IReceivedProps> {
+    const formOptions = { multiples: true, keepExtensions: true, hash: 'sha1' };
+    //log('receiveFiles');
     return new Promise((resolve, reject) => {  
       const form = formidable(formOptions);
-      log('receiveFiles form parse start');
+      //log('receiveFiles form parse start');
       form.parse(req, (err, fields, files) => {
-        log('receiveFiles form parse end', err, fields, files);
+        //log('receiveFiles form parse end', err, fields, files);
         if (err) {
           reject(err);
         } else {
@@ -70,15 +73,15 @@ export function newFileMgr(config: IConfig, s3: AWS.S3): IFileMgr {
     })
   }
 
-  async function readStreamToBuffer(filePath: string): Promise<Buffer> {
+  async readStreamToBuffer(filePath: string): Promise<Buffer> {
     return sharp(filePath).toBuffer();
   }
 
-  async function resizeAndUpload(readBuffer: Buffer, file_name: string, size: FileSizeType): Promise<any> {
+  async resizeAndUpload(readBuffer: Buffer, file_name: string, size: FileSizeType): Promise<any> {
     let result: any = {};
     try {
-      const image = await resizeImage(readBuffer, _.MAX_FILE_DIMS[size]);
-      result = await s3UploadFile(image, file_name, size);
+      const image = await this.resizeImage(readBuffer, _.MAX_FILE_DIMS[size]);
+      result = await this.s3UploadFile(image, file_name, size);
       log('resizeAndUpload', result);
     } catch (err) {
       result.error = err.message;
@@ -87,50 +90,39 @@ export function newFileMgr(config: IConfig, s3: AWS.S3): IFileMgr {
     return result;
   }
 
-  async function resizeImage(readBuffer: Buffer, widthIn: number): Promise<Buffer> {
+  async resizeImage(readBuffer: Buffer, widthIn: number): Promise<Buffer> {
     let { width } = await sharp(readBuffer).metadata();
     width = Math.min(width, widthIn);
     return sharp(readBuffer).resize({ width }).toBuffer();
   }
 
-  async function s3UploadFile(Body: Buffer, file_name: string, size: FileSizeType): Promise<any> {
+  async s3UploadFile(Body: Buffer, file_name: string, size: FileSizeType): Promise<any> {
+    const { Bucket, ACL, folders } = this.config.s3;
     const params = {
       Bucket,
       ACL,
       Key:  [...folders, size, file_name].join('/'), // '/uploads/images/large/uuid.jpg'
       Body, // buffer or readable stream
     };
-    return s3.upload(params).promise();
+    return this.s3.upload(params).promise();
   }
 
-  function checkFileType({ type }: IFileObj): boolean {
+  checkFileType({ type }: IFileObj): boolean {
     if (type && _.ACCEPT_MIMETYPES.includes(type)) return true;
     throw new Error(_.ERR_INVALID_FILE_TYPE);
   }
 
-  function checkFileSize({ size = 0 }: IFileObj): boolean {
+  checkFileSize({ size = 0 }: IFileObj): boolean {
     if (_.MAX_FILE_SIZE < size) throw new Error(_.ERR_INVALID_FILE_SIZE);
     return true;
   }
 
-  function pruneFileName(fb_file: IFileObj): IFileObj {
+  pruneFileName(fb_file: IFileObj): IFileObj {
     fb_file.name = String(fb_file.name).toLowerCase().replace(_.FILENAME_NOT_ACCEPTABLE_CHAR, '-');
     return fb_file;
   }
 
-  function getFileExt(filePath: string): string {
+  getFileExt(filePath: string): string {
     return path.extname(filePath).toLocaleLowerCase(); // => '.jpg'
   }
-
-  return {
-    receiveFiles,
-    readStreamToBuffer,
-    resizeAndUpload,
-    resizeImage,
-    s3UploadFile,
-    checkFileType,
-    checkFileSize,
-    pruneFileName,
-    getFileExt,
-  };
 }

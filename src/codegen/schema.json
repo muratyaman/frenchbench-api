@@ -110,6 +110,18 @@
             "deprecationReason": null
           },
           {
+            "name": "owner",
+            "description": null,
+            "args": [],
+            "type": {
+              "kind": "OBJECT",
+              "name": "User",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
             "name": "lat",
             "description": null,
             "args": [],
@@ -258,13 +270,9 @@
             "description": null,
             "args": [],
             "type": {
-              "kind": "NON_NULL",
-              "name": null,
-              "ofType": {
-                "kind": "OBJECT",
-                "name": "AssetRelationList",
-                "ofType": null
-              }
+              "kind": "OBJECT",
+              "name": "AssetRelationList",
+              "ofType": null
             },
             "isDeprecated": false,
             "deprecationReason": null
@@ -591,18 +599,6 @@
             "deprecationReason": null
           },
           {
-            "name": "created_by",
-            "description": null,
-            "args": [],
-            "type": {
-              "kind": "SCALAR",
-              "name": "String",
-              "ofType": null
-            },
-            "isDeprecated": false,
-            "deprecationReason": null
-          },
-          {
             "name": "is_buying",
             "description": null,
             "args": [],
@@ -667,13 +663,9 @@
             "description": null,
             "args": [],
             "type": {
-              "kind": "NON_NULL",
-              "name": null,
-              "ofType": {
-                "kind": "OBJECT",
-                "name": "AssetRelationList",
-                "ofType": null
-              }
+              "kind": "OBJECT",
+              "name": "AssetRelationList",
+              "ofType": null
             },
             "isDeprecated": false,
             "deprecationReason": null
@@ -1061,6 +1053,12 @@
         "interfaces": null,
         "enumValues": [
           {
+            "name": "USER_PROFILE_IMAGE",
+            "description": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
             "name": "POST_IMAGE",
             "description": null,
             "isDeprecated": false,
@@ -1068,6 +1066,12 @@
           },
           {
             "name": "ADVERT_IMAGE",
+            "description": null,
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "ARTICLE_IMAGE",
             "description": null,
             "isDeprecated": false,
             "deprecationReason": null
@@ -1177,13 +1181,9 @@
             "description": null,
             "args": [],
             "type": {
-              "kind": "NON_NULL",
-              "name": null,
-              "ofType": {
-                "kind": "OBJECT",
-                "name": "Asset",
-                "ofType": null
-              }
+              "kind": "OBJECT",
+              "name": "Asset",
+              "ofType": null
             },
             "isDeprecated": false,
             "deprecationReason": null
@@ -1252,13 +1252,9 @@
             "description": null,
             "args": [],
             "type": {
-              "kind": "NON_NULL",
-              "name": null,
-              "ofType": {
-                "kind": "ENUM",
-                "name": "EntityKindEnum",
-                "ofType": null
-              }
+              "kind": "ENUM",
+              "name": "EntityKindEnum",
+              "ofType": null
             },
             "isDeprecated": false,
             "deprecationReason": null
@@ -2247,15 +2243,15 @@
             "deprecationReason": null
           },
           {
-            "name": "username",
+            "name": "owner",
             "description": null,
             "args": [],
             "type": {
               "kind": "NON_NULL",
               "name": null,
               "ofType": {
-                "kind": "SCALAR",
-                "name": "String",
+                "kind": "OBJECT",
+                "name": "User",
                 "ofType": null
               }
             },
@@ -2351,13 +2347,9 @@
             "description": null,
             "args": [],
             "type": {
-              "kind": "NON_NULL",
-              "name": null,
-              "ofType": {
-                "kind": "OBJECT",
-                "name": "AssetRelationList",
-                "ofType": null
-              }
+              "kind": "OBJECT",
+              "name": "AssetRelationList",
+              "ofType": null
             },
             "isDeprecated": false,
             "deprecationReason": null
@@ -2628,29 +2620,13 @@
             "deprecationReason": null
           },
           {
-            "name": "created_by",
-            "description": null,
-            "args": [],
-            "type": {
-              "kind": "SCALAR",
-              "name": "String",
-              "ofType": null
-            },
-            "isDeprecated": false,
-            "deprecationReason": null
-          },
-          {
             "name": "assets",
             "description": null,
             "args": [],
             "type": {
-              "kind": "NON_NULL",
-              "name": null,
-              "ofType": {
-                "kind": "OBJECT",
-                "name": "AssetRelationList",
-                "ofType": null
-              }
+              "kind": "OBJECT",
+              "name": "AssetRelationList",
+              "ofType": null
             },
             "isDeprecated": false,
             "deprecationReason": null
@@ -3403,6 +3379,22 @@
             "deprecationReason": null
           },
           {
+            "name": "email_verified",
+            "description": null,
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "kind": "SCALAR",
+                "name": "Boolean",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
             "name": "phone",
             "description": null,
             "args": [],
@@ -3410,6 +3402,22 @@
               "kind": "SCALAR",
               "name": "String",
               "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "phone_verified",
+            "description": null,
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "kind": "SCALAR",
+                "name": "Boolean",
+                "ofType": null
+              }
             },
             "isDeprecated": false,
             "deprecationReason": null
@@ -3539,13 +3547,9 @@
             "description": null,
             "args": [],
             "type": {
-              "kind": "NON_NULL",
-              "name": null,
-              "ofType": {
-                "kind": "OBJECT",
-                "name": "AssetRelationList",
-                "ofType": null
-              }
+              "kind": "OBJECT",
+              "name": "AssetRelationList",
+              "ofType": null
             },
             "isDeprecated": false,
             "deprecationReason": null
@@ -3611,7 +3615,7 @@
                   "name": null,
                   "ofType": {
                     "kind": "OBJECT",
-                    "name": "User",
+                    "name": "UserSummary",
                     "ofType": null
                   }
                 }
@@ -3632,6 +3636,141 @@
                 "name": "ListMeta",
                 "ofType": null
               }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          }
+        ],
+        "inputFields": null,
+        "interfaces": [],
+        "enumValues": null,
+        "possibleTypes": null
+      },
+      {
+        "kind": "OBJECT",
+        "name": "UserSummary",
+        "description": null,
+        "fields": [
+          {
+            "name": "id",
+            "description": null,
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "kind": "SCALAR",
+                "name": "ID",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "username",
+            "description": null,
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "email_verified",
+            "description": null,
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "kind": "SCALAR",
+                "name": "Boolean",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "phone_verified",
+            "description": null,
+            "args": [],
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "kind": "SCALAR",
+                "name": "Boolean",
+                "ofType": null
+              }
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "lat",
+            "description": null,
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "Float",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "lon",
+            "description": null,
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "Float",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "geo_accuracy",
+            "description": null,
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "Int",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "created_at",
+            "description": null,
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "Date",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "assets",
+            "description": null,
+            "args": [],
+            "type": {
+              "kind": "OBJECT",
+              "name": "AssetRelationList",
+              "ofType": null
             },
             "isDeprecated": false,
             "deprecationReason": null

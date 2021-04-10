@@ -12,13 +12,17 @@ generates:
       showUnusedMappers: true
       mappers:
         User: "../mappers#UserMapper"
+        UserSummary: "../mappers#UserSummaryMapper"
         UserList: "../mappers#UserListMapper"
         Advert: "../mappers#AdvertMapper"
+        AdvertSummary: "../mappers#AdvertSummaryMapper"
         AdvertList: "../mappers#AdvertListMapper"
         Post: "../mappers#PostMapper"
+        PostSummary: "../mappers#PostSummaryMapper"
         PostList: "../mappers#PostListMapper"
         Asset: "../mappers#AssetMapper"
         AssetRelationList: "../mappers#AssetRelationListMapper"
+        ListMeta: "../mappers#ListMetaMapper"
 
   "./src/codegen/schema.json":
     plugins:

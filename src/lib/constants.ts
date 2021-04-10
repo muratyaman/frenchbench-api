@@ -14,22 +14,25 @@ export const TBL_EMAIL_VERIF  = 'email_verifications';
 export const TBL_PHONE_VERIF  = 'phone_verifications';
 
 export const ENTITY_ASSET_PARENT_KIND = {
-  USER: TBL_USER,
-  POST: TBL_POST,
+  USER:    TBL_USER,
+  POST:    TBL_POST,
+  ADVERT:  TBL_ADVERT,
   ARTICLE: TBL_ARTICLE,
-  ADVERT: TBL_ADVERT,
 };
 
 export const ENTITY_ASSET_PURPOSE = {
   USER_PROFILE_IMAGE: 'user-profile-image',
-  POST_IMAGE: 'post-image',
-  ARTICLE_IMAGE: 'article-image',
-  ADVERT_IMAGE: 'advert-image',
+  POST_IMAGE:         'post-image',
+  ADVERT_IMAGE:       'advert-image',
+  ARTICLE_IMAGE:      'article-image',
 };
 
 export const tablesFields = {
   [TBL_USER]: [
-    'id', 'username', 'password_hash', 'first_name', 'last_name', 'email', 'headline', 'neighbourhood',
+    'id', 'username', 'password_hash', 'first_name', 'last_name',
+    'headline', 'neighbourhood',
+    'email', 'email_verified',
+    'phone', 'phone_verified',
     'lat', 'lon', 'geo_accuracy', 'geo_updated_at', // geolocation tracking
     'created_at', 'updated_at', 'created_by', 'updated_by', // audit trail
   ],
@@ -56,14 +59,14 @@ export const tablesFields = {
     'lat', 'lon', 'geo_accuracy', 'geo_updated_at', // geolocation tracking
     'created_at', 'updated_at', 'created_by', 'updated_by', // audit trail
   ],
-  [TBL_ARTICLE]: [
-    'id', 'slug', 'title', 'content', 'keywords',
-    'created_at', 'updated_at', 'created_by', 'updated_by', // audit trail
-  ],
   [TBL_ADVERT]: [
     'id', 'user_id', 'slug', 'title', 'content', 'tags',
     'is_buying', 'is_service', 'price', 'currency', 'price_info', // advert info
     'lat', 'lon', 'geo_accuracy', 'geo_updated_at', // geolocation tracking
+    'created_at', 'updated_at', 'created_by', 'updated_by', // audit trail
+  ],
+  [TBL_ARTICLE]: [ // TODO: deprecated
+    'id', 'slug', 'title', 'content', 'keywords',
     'created_at', 'updated_at', 'created_by', 'updated_by', // audit trail
   ],
 };

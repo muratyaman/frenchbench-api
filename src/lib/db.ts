@@ -1,10 +1,10 @@
-import { Pool, Result } from 'pg';
+import { Pool } from 'pg';
 import { hash, log, newUuid } from './utils';
 
 export interface IDb {
-  query(text: string, values?: any[], name?: string | null): Promise<IDbQueryResult>;
+  query<TRow = any>(text: string, values?: any[], name?: string | null): Promise<IDbQueryResult<TRow>>;
   queryMeta(text: string, values?: any[], name?: string | null): Promise<IDbQueryResultMeta>;
-  now(): Promise<IDbQueryResult>;
+  now(): Promise<IDbQueryResult<IRowNow>>;
   find<T>(tableName: string, condition?: any, limit?: number): Promise<IDbQueryResultWithRow<T>>;
   insert(tableName: string, row: any): Promise<IDbQueryResult>;
   update(tableName: string, condition: any, change: any, limit?: number): Promise<IDbQueryResult>;
@@ -12,18 +12,36 @@ export interface IDb {
   placeHolder(idx: number): string;
 }
 
-export interface IDbQueryResult {
-  result: Result;
-  error?: string | null;
+export interface IFieldInfo { // pg.FieldInfo
+  name: string;
+  dataTypeID: number;
 }
 
-export interface IDbQueryResultWithRow<TRow = any> extends IDbQueryResult {
-  row?: TRow;
+export interface IResult<TRow = any> { // pg.Result
+  command: string;  // command type last executed: INSERT, UPDATE CREATE SELECT
+  rowCount: number; // # of rows affected
+  rows: Array<TRow>;
+  success: boolean;
 }
 
-export interface IDbQueryResultMeta {
-  error?: string | null;
+export interface IDbQueryResult<TRow = any> {
+  result: IResult<TRow> | null;
+  error: string | null;
+}
+
+export interface IDbQueryResultWithRow<TRow = any> extends IDbQueryResult<TRow> {
+  row: TRow | null;
+}
+
+export interface IRowMeta {
   row_count: number;
+}
+export interface IDbQueryResultMeta extends IRowMeta {
+  error?: string | null;
+}
+
+export interface IRowNow {
+  ts: string;
 }
 
 export function newDb(pool: Pool): IDb {
@@ -32,34 +50,40 @@ export function newDb(pool: Pool): IDb {
     return '$' + idx;
   }
 
-  async function query(text: string, values: any[] = [], name: string | null = null): Promise<IDbQueryResult> {
-    let result = null, error = null;
+  async function query<TRow = any>(text: string, values: any[] = [], name: string | null = null): Promise<IDbQueryResult<TRow>> {
+    let result: IResult<TRow> | null = null;
+    let error: string | null = null;
     const id = newUuid();
     log('db query', id, name, text);
     log('db params', id, values);
     try {
       if (name) { // reusable prepared query
-        result = await pool.query({ text, values, name });
+        const result1 = await pool.query({ text, values, name });
+        const { command, rows = [], rowCount = 0 } = result1;
+        result = { command, rowCount, success: 0 < rowCount, rows: (rows ?? []).map(r => r as TRow)};
       } else {
-        result = await pool.query(text, values);
+        const result2 = await pool.query(text, values);
+        const { command, rows = [], rowCount = 0 } = result2;
+        result = { command, rowCount, success: 0 < rowCount, rows: (rows ?? []).map(r => r as TRow)};
       }
-      log('db result', id);//, result);
+      log('db result', id);
     } catch (err) {
       log('db error', id, err);
-      error = err;
+      error = err.message;
     }
     return { result, error };
   }
 
   async function queryMeta(text: string, values: any[] = [], name: string | null = null): Promise<IDbQueryResultMeta> {
     const counter = `SELECT COUNT(q.*) AS row_count FROM (${text}) q`;
-    const { result, error } = await query(counter, values, name);
-    const row0 = result && result.rows && result.rows[0] ? result.rows[0] : {};
-    return { error, ...row0 };
+    const { result, error } = await query<IRowMeta>(counter, values, name);
+    const { rows = [] } = result ?? {};
+    const { row_count = 0 } = rows[0] ?? {};
+    return { error, row_count };
   }
 
-  async function now(): Promise<IDbQueryResult> {
-    return query('SELECT NOW() AS ts');
+  async function now(): Promise<IDbQueryResult<IRowNow>> {
+    return query<IRowNow>('SELECT NOW() AS ts');
   }
 
   async function find<TRow = any>(tableName: string, condition: any = {}, limit = 0): Promise<IDbQueryResultWithRow<TRow>> {
@@ -68,19 +92,19 @@ export function newDb(pool: Pool): IDb {
       params.push(value);
       where.push(field + ' = ' + placeHolder(params.length));
     });
-    const whereStr = where ? 'WHERE ' + where.join(' AND ') : '';
+    const whereClause = where ? 'WHERE ' + where.join(' AND ') : '';
     
-    let limitStr = '';
+    let limitClause = '';
     let limitInt = Number.parseInt(String(limit));
     if (100 < limitInt) limitInt = 100;
     if (limitInt < 0) limitInt = 0;
-    if (limitInt) {
+    if (limitInt > 0) {
       params.push(limitInt);
       const limitPh = placeHolder(params.length);
-      limitStr = limitInt ? `LIMIT ${limitPh}` : '';
+      limitClause = limitInt ? `LIMIT ${limitPh}` : '';
     }
 
-    const text = `SELECT * FROM ${tableName} ${whereStr} ${limitStr}`;
+    const text = `SELECT * FROM ${tableName} ${whereClause} ${limitClause}`;
     const name = tableName + '-f-' + hash(text);
     const { result, error } = await query(text, params, name);
     const row = limitInt === 1 && result && result.rows && result.rows.length ? result.rows[0] : null;

@@ -47,3 +47,42 @@ export function rndInt(max = 9999, min = 0): number {
 export function rndEmailVerificationCode(): string {
   return rndStr(5, UPPER_CASE_LETTERS);
 }
+
+export function normalize(slug = '') {
+  let ref = slug.toLocaleLowerCase();
+  if (ref === '') ref = ts();
+  ref = ref.toLocaleLowerCase().replace(/[^a-z0-9]/g, '-');
+  return ref;
+}
+
+export function makePostSlug(slug = '') {
+  return normalize(slug);
+}
+
+export function makeArticleSlug(slug = '') {
+  return normalize(slug);
+}
+
+export function makeAdvertSlug(slug = '') {
+  return normalize(slug);
+}
+
+export function newRow({ user = null, id = newUuid(), dt = new Date(), ...rest }) {
+  const by = user ? { created_by: user.id, updated_by: user.id } : {};
+  return {
+    id,
+    created_at: dt,
+    updated_at: dt,
+    ...by,
+    ...rest,
+  };
+}
+
+export function updateRow({ user = null, dt = new Date(), ...rest }) {
+  const by = user ? { updated_by: user.id } : {};
+  return {
+    updated_at: dt,
+    ...by,
+    ...rest,
+  };
+}

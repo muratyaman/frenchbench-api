@@ -1,6 +1,6 @@
 import 'dotenv/config'; // read .env file
 import WebSocket from 'ws';
-import { newUuid, log, IConfig, ISecurityMgr, IApi } from './lib';
+import { newUuid, log, IConfig, SecurityService, IApi } from './lib';
 
 export const MSG_KIND_SES    = 'ses'; // connected, server => session ID => client
 export const MSG_KIND_GEO    = 'geo'; // geolocation update
@@ -60,7 +60,7 @@ export type IWebSocketServer = ReturnType<typeof newWebSocketServer>;
 
 export async function newWebSocketServer(
   config: IConfig,
-  securityMgr: ISecurityMgr,
+  securityMgr: SecurityService,
   api: IApi,
 ) {
 

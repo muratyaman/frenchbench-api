@@ -1,1 +1,1 @@
-export { AssetMediaTypeEnum, AssetPurposeEnum, AssetTypeEnum, EntityKindEnum } from './lib/types';
+export { AssetMediaTypeEnum, AssetPurposeEnum, AssetTypeEnum, EntityKindEnum } from './lib/dbModels';
