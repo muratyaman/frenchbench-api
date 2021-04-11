@@ -1,14 +1,12 @@
 import { Request, Response } from 'express';
-import { ErrUnauthorized, ERR_NO_FILE_UPLOADED, FileService, SecurityService, log, newUuid } from '../../../lib';
+import { IFactory } from '../../../factory';
+import { ErrUnauthorized, ERR_NO_FILE_UPLOADED, log, newUuid } from '../../../lib';
 
 export interface IApiUploadHandler {
   (req: Request, res: Response): Promise<void>;
 }
 
-export function makeApiUploadHandler(
-  fileMgr: FileService,
-  securityMgr: SecurityService,
-): IApiUploadHandler {
+export function makeApiUploadHandler({ fileMgr, securityMgr }: IFactory): IApiUploadHandler {
 
   // handle '/api/upload'
   async function handleApiUpload(req: Request, res: Response): Promise<void> {

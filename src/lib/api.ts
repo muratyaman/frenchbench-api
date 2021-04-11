@@ -3,19 +3,47 @@ import { IConfig } from './config';
 import { ErrForbidden, ErrUnauthorized } from './errors';
 import { SecurityService } from './SecurityService';
 import { EmailService } from './EmailService';
-import { IDb } from './db';
+import { DbService } from './DbService';
 import {
   AdvertService, ArticleService, AssetService, EchoService, HealthService,
   PostService, UserService, VerificationService,
 } from './apiExt';
 
+export const actionsProtected = [
+  'signout',
+  'me', 'user_retrieve_self',
+  'usercontact_update', 'usercontact_update_self',
+  'usergeo_update', 'usergeo_update_self',
+  'verify_email_start', 'verify_email_finish',
+  'post_create', 'post_update', 'post_delete',
+  'advert_create', 'advert_update', 'advert_delete',
+  'article_update',
+  'asset_create', 'asset_delete',
+  'entity_asset_create', 'entity_asset_delete',
+];
+export const actionsForUser = [
+  'usergeo_update',
+  'usercontact_update',
+];
+export const actionsForSelf = [
+  'me', 'user_retrieve_self',
+  'usergeo_update_self',
+  'usercontact_update_self',
+];
+export const actionsForOwners = [
+  'post_update', 'post_delete',
+  'article_update', 'article_delete',
+  'asset_delete', 'entity_asset_delete',
+  'advert_update', 'advert_delete',
+];
+
 export type IApi = ReturnType<typeof newApi>;
 
 export function newApi(
   config: IConfig,
+  db: DbService,
   securityMgr: SecurityService,
   emailMgr: EmailService,
-  db: IDb,
 ) {
 
   const echoService   = new EchoService();
@@ -23,49 +51,12 @@ export function newApi(
 
   const assetService   = new AssetService(db);
   const userService    = new UserService(config, db, securityMgr, assetService);
+  const verifService   = new VerificationService(db, emailMgr);
   const advertService  = new AdvertService(db, assetService, userService);
   const postService    = new PostService(db, assetService, userService);
   const articleService = new ArticleService(db, assetService);
-  const verifService   = new VerificationService(db, emailMgr);
 
-  const actionsProtected = [
-    'signout',
-    'me',
-    'user_retrieve_self',
-    'usercontact_update',
-    'usercontact_update_self',
-    'usergeo_update',
-    'usergeo_update_self',
-    'verify_email_start',
-    'verify_email_finish',
-    'post_create', 'post_update', 'post_delete',
-    'advert_create', 'advert_update', 'advert_delete',
-    'article_update',
-    'asset_create', 'asset_delete',
-    'entity_asset_create', 'entity_asset_delete',
-  ];
-  const actionsForUser = [
-    'usergeo_update',
-    'usercontact_update',
-  ];
-  const actionsForSelf = [
-    'me',
-    'user_retrieve_self',
-    'usergeo_update_self',
-    'usercontact_update_self',
-  ];
-  const actionsForOwners = [
-    'post_update',
-    'post_delete',
-    'article_update',
-    'article_delete',
-    'asset_delete',
-    'entity_asset_delete',
-    'advert_update',
-    'advert_delete',
-  ];
-
-  function _isAllowed({ action = '', user = null, id = null, input = {}, rowFound = null, tokenError = null }) {
+  function _isAllowed({ action = '', user = null, id = null, rowFound = null, tokenError = null }) {
     let protect = false;
     if (actionsProtected.includes(action)) {
       protect = true;
@@ -81,22 +72,35 @@ export function newApi(
       if (!user) throw new ErrForbidden();
     }
     if (protect && actionsForOwners.includes(action) && rowFound) { // extra check
-      if (user.id !== rowFound.created_by) throw new ErrForbidden();
+      const ownerIds = [];
+      if (rowFound.user_id) ownerIds.push(rowFound.user_id);
+      if (rowFound.created_by) ownerIds.push(rowFound.created_by);
+      if (!ownerIds.includes(user.id)) throw new ErrForbidden();
     }
     return !protect;
   }
 
   return {
     _isAllowed,
-
-    echo: echoService.echo,
-    health: healthService.health,
-
-    ...userService._api(),
-    ...verifService._api(),
-    ...postService._api(),
-    ...advertService._api(),
-    ...articleService._api(),
-    ...assetService._api(),
+    _services: {
+      echo: echoService,
+      health: healthService,
+      asset: assetService,
+      user: userService,
+      verification: verifService,
+      post: postService,
+      advert: advertService,
+      article: articleService,
+    },
+    _actions: {
+      ...echoService._api(),
+      ...healthService._api(),
+      ...assetService._api(),
+      ...userService._api(),
+      ...verifService._api(),
+      ...postService._api(),
+      ...advertService._api(),
+      ...articleService._api(),
+    },
   };
 }

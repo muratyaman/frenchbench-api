@@ -99,6 +99,7 @@ export const MSG_UNKNOWN_ERROR       = 'there was an error, please try again lat
 export const MSG_INVALID_CREDENTIALS = 'Invalid credentials';
 export const MSG_ID_REQUIRED         = 'id required';
 export const MSG_USERNAME_REQUIRED   = 'username is required';
+export const MSG_RECORD_NOT_FOUND    = 'record not found';
 export const MSG_POST_NOT_FOUND      = 'post not found';
 export const MSG_USER_NOT_FOUND      = 'user not found';
 export const MSG_ARTICLE_NOT_FOUND   = 'article not found';

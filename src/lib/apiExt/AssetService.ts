@@ -2,17 +2,12 @@ import * as _ from '../constants';
 import * as at from '../apiTypes';
 import * as ct from '../commonTypes';
 import * as dm from '../dbModels';
-import { IDb } from '../db';
+import { DbService } from '../DbService';
 import { ErrForbidden, ErrNotFound } from '../errors';
 import { hash, newRow, newUuid } from '../utils';
 
 export class AssetService {
-
-  constructor(
-    private db: IDb,
-  ) {
-
-  }
+  constructor(private db: DbService) {}
 
   async asset_create({ user, input }) {
     if (!user) throw new ErrForbidden();
@@ -22,44 +17,45 @@ export class AssetService {
     let { id = newUuid(), asset_type = null, media_type = null, label = null, url = null, meta = {} } = input;
     const row = newRow({ id, user, asset_type, media_type, label, url, meta });
     const { result, error } = await this.db.insert(_.TBL_ASSET, row);
-    return { data: 0 < result.rowCount ? id : null, error };
+    return { data: result.success ? id : null, error };
   }
 
   async asset_search({ input }: at.AssetSearchInput): at.AssetSearchOutput {
     let data: dm.Asset[] = [];
-    const { ids = [], offset = '0', limit = '100' } = input;
-
-    let myOffset = Number.parseInt(`${offset}`);
-    if (myOffset < 0) myOffset = 0;
-    let myLimit = Number.parseInt(`${limit}`);
-    if (100 < myLimit) myLimit = 100;
-
+    const { ids = [] } = input;
     const conditions = [];
     const params = [];
 
     if (ids.length) {
-      conditions.push('a.id IN (' + ids.map(id => {
-        params.push(id);
-        return this.db.placeHolder(params.length);
-      }) + ')');
+      const idList = ids.map(id => {
+        params.push(id); // side-effect
+        return this.db.ph(params.length);
+      });
+      conditions.push('a.id IN (' + idList.join(',') + ')');
     }
 
-    params.push(offset);
-    const offsetStr = ' OFFSET ' + this.db.placeHolder(params.length);
-    params.push(limit);
-    const limitStr = ' LIMIT ' + this.db.placeHolder(params.length);
+    const paramsNoPagination = [...params];
 
     const whereStr = conditions.length ? ' WHERE (' + conditions.join(') AND (') + ')' : '';
-    const text = 'SELECT a.* FROM ' + _.TBL_ASSET + ' a'
-      + whereStr
-      + ' ORDER BY a.created_at DESC' // TODO: ranking, relevance
-      + offsetStr
-      + limitStr;
-    const preparedQryName = 'asset-search-' + hash(text);
-    const { result, error: findError } = await this.db.query(text, params, preparedQryName);
+    
+    const textNoPagination = `
+SELECT a.* FROM ${_.TBL_ASSET} a
+${whereStr}
+ORDER BY a.created_at DESC
+`; // TODO: ranking, relevance
+
+    const pagination = this.db.paginate(input, 100);
+    const { offsetClause, limitClause } = this.db.paginationClauses(pagination, params);
+
+    const text = textNoPagination + offsetClause + limitClause;
+    const qryName = 'asset-search-' + hash(text);
+    const { result, error: findError } = await this.db.query<dm.Asset>(text, params, qryName);
     if (findError) throw findError;
     data = result && result.rows ? result.rows : [];
-    return { data };
+
+    const meta = await this.db.queryMeta(textNoPagination, paramsNoPagination, 'meta-' + qryName);
+
+    return { data, meta };
   }
 
   async asset_retrieve({ id }: at.AssetRetrieveInput): at.AssetRetrieveOutput {
@@ -70,9 +66,11 @@ export class AssetService {
     return { data: row };
   }
 
-  async asset_delete({ id }: at.AssetDeleteInput): at.AssetDeleteOutput {
+  async asset_delete({ user, id }: at.AssetDeleteInput): at.AssetDeleteOutput {
     // TODO: validate uuid
     // TODO: delete related records
+    const { data: found } = await this.asset_retrieve({ user, id });
+    if (user.id !== found.created_by) throw new ErrForbidden();
     const { result, error } = await this.db.del(_.TBL_ASSET, { id }, 1);
     // TODO: delete from file storage
     return { data: result.success, error };
@@ -113,20 +111,20 @@ export class AssetService {
 
     if (parent_entity_kind) {
       params.push(parent_entity_kind);
-      conditions.push('parent_entity_kind = ' + this.db.placeHolder(params.length));
+      conditions.push('parent_entity_kind = ' + this.db.ph(params.length));
     }
 
     if (parent_entity_ids.length) {
       conditions.push('parent_entity_id IN (' + parent_entity_ids.map(peid => {
         params.push(peid);
-        return this.db.placeHolder(params.length);
+        return this.db.ph(params.length);
       }) + ')');
     }
 
     params.push(offset);
-    const offsetStr = ' OFFSET ' + this.db.placeHolder(params.length);
+    const offsetStr = ' OFFSET ' + this.db.ph(params.length);
     params.push(limit);
-    const limitStr = ' LIMIT ' + this.db.placeHolder(params.length);
+    const limitStr = ' LIMIT ' + this.db.ph(params.length);
 
     const whereStr = conditions.length ? ' WHERE (' + conditions.join(') AND (') + ')' : '';
     const text = 'SELECT ea.*, row_to_json(a.*) AS asset '
@@ -143,15 +141,25 @@ export class AssetService {
     return { data };
   }
 
-  async entity_asset_delete({ id }: at.EntityAssetDeleteInput): at.EntityAssetDeleteOutput {
+  async entity_asset_retrieve({ user, id }: at.EntityAssetRetrieveInput): at.EntityAssetRetrieveOutput {
+    // TODO: validate uuid
+    // TODO: analytics of 'views' per record per visitor per day
+    const { row, error } = await this.db.find<dm.EntityAsset>(_.TBL_ENTITY_ASSET, { id }, 1);
+    if (!row || error ) throw new ErrNotFound();
+    return { data: row };
+  }
+
+  async entity_asset_delete({ user, id }: at.EntityAssetDeleteInput): at.EntityAssetDeleteOutput {
     // TODO: validate uuid
     // TODO: delete related records
+    const { data: found } = await this.entity_asset_retrieve({ user, id });
+    if (user.id !== found.created_by) throw new ErrForbidden();
     const { result, error } = await this.db.del(_.TBL_ENTITY_ASSET, { id }, 1);
-    return { data: 0 < result.rowCount, error };
+    return { data: result.success, error };
   }
 
   // This has side effects on data!
-  async find_attach_assets<TRow extends ct.HasId>(
+  async _find_attach_assets<TRow extends ct.HasId>(
     { user, data, parent_entity_kind = null }: { user: ct.SessionUser, data: Array<TRow>, parent_entity_kind?: string | null }
   ): Promise<Array<TRow & dm.HasAssets>> {
     const { data: entityAssets } = await this.entity_asset_search({
@@ -176,15 +184,40 @@ export class AssetService {
     return data;
   }
 
+  _entity_asset_create_post_image(user: ct.SessionUser,  post_id: string, asset_id: string) {
+    return this.entity_asset_create({
+      user,
+      input: {
+        parent_entity_kind: _.ENTITY_ASSET_PARENT_KIND.POST,
+        parent_entity_id: post_id,
+        purpose: _.ENTITY_ASSET_PURPOSE.POST_IMAGE,
+        asset_id,
+      },
+    });
+  }
+
+  _entity_asset_create_advert_image(user: ct.SessionUser,  advert_id: string, asset_id: string) {
+    return this.entity_asset_create({
+      user,
+      input: {
+        parent_entity_kind: _.ENTITY_ASSET_PARENT_KIND.ADVERT,
+        parent_entity_id: advert_id,
+        purpose: _.ENTITY_ASSET_PURPOSE.ADVERT_IMAGE,
+        asset_id,
+      },
+    });
+  }
+
   _api() {
     return {
-      asset_create: this.asset_create,
-      asset_delete: this.asset_delete,
-      asset_retrieve: this.asset_retrieve,
-      asset_search: this.asset_search,
-      entity_asset_create: this.entity_asset_create,
-      entity_asset_delete: this.entity_asset_delete,
-      entity_asset_search: this.entity_asset_search,
+      asset_create: this,
+      asset_delete: this,
+      asset_retrieve: this,
+      asset_search: this,
+      entity_asset_create: this,
+      entity_asset_delete: this,
+      entity_asset_retrieve: this,
+      entity_asset_search: this,
     };
   }
 }

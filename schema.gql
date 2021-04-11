@@ -2,17 +2,25 @@ scalar Date
 scalar DateTime
 #scalar JSON
 
+schema {
+  query: Query
+  mutation: Mutation
+}
+
 type Query {
   me: User!
-  user(filter: UserFilter): User!
+  user(filter: UserFilter!): User!
   users(filter: UsersFilter): UserList!
-  post(filter: PostFilter): Post!
+  post(filter: PostFilter!): Post!
   posts(filter: PostsFilter): PostList!
-  advert(filter: AdvertFilter): Advert!
+  advert(filter: AdvertFilter!): Advert!
   adverts(filter: AdvertsFilter): AdvertList!
 }
 
 type Mutation {
+  signUp(data: SignUpInput!): SignUpOutput!
+  signIn(data: SignInInput!): SignInOutput!
+  signOut: Boolean!
   createPost(data: CreatePostInput!): CreatePostOutput!
   updatePost(id: ID!, data: UpdatePostInput!): UpdatePostOutput!
   deletePost(id: ID!): DeletePostOutput!
@@ -116,6 +124,7 @@ type Post {
   lat: Float
   lon: Float
   geo_accuracy: Int
+  geo_updated_at: Date
 
   created_at: Date
   created_by: String
@@ -246,6 +255,7 @@ type Advert {
   lat: Float
   lon: Float
   geo_accuracy: Int
+  geo_updated_at: Date
 
   created_at: Date
   created_by: String
@@ -352,6 +362,32 @@ type AssetRelation {
   updated_at: Date
   updated_by: String
 }
+
+input SignUpInput {
+  username: String!
+  password: String!
+  password_confirm: String!
+}
+
+type SignUpOutput {
+  id: ID!
+  username: String!
+  token_type: String!
+  token: String!
+}
+
+input SignInInput {
+  username: String!
+  password: String!
+}
+
+type SignInOutput {
+  id: ID!
+  username: String!
+  token_type: String!
+  token: String!
+}
+
 
 enum EntityKindEnum {
   POSTS

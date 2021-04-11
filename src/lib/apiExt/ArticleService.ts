@@ -1,46 +1,48 @@
 import * as _ from '../constants';
 import * as at from '../apiTypes';
 import * as dm from '../dbModels';
-import { IDb } from '../db';
+import { DbService } from '../DbService';
 import { makeArticleSlug, updateRow } from '../utils';
 import { ErrForbidden, ErrNotFound } from '../errors';
 import { AssetService } from './AssetService';
 
 export class ArticleService {
-
-  constructor(
-    private db: IDb,
-    private assetService: AssetService,
-  ) {
-
-  }
+  constructor(private db: DbService, private assetService: AssetService) {}
 
   async article_search({ user, input }: at.ArticleSearchInput): at.ArticleSearchOutput {
     let data = [];
     // eslint-disable-next-line prefer-const
-    let { q = '', offset = '0', limit = '10', with_assets = false } = input;
-    let myOffset = Number.parseInt(`${offset}`);
-    if (myOffset < 0) myOffset = 0;
-    let myLimit = Number.parseInt(`${limit}`);
-    if (100 < myLimit) myLimit = 100;
+    let { q = '', with_assets = false } = input;
+    const params = [];
+    params.push(`%${q}%`); const ph1 = this.db.ph(params.length);
+
+    const pagination = this.db.paginate(input, 100);
+    const { offsetClause, limitClause } = this.db.paginationClauses(pagination, params);
+
     // do not include large records e.g. avoid returning large text fields
-    const text = 'SELECT a.id, a.slug, a.title, a.keywords, a.created_at, a.updated_at FROM ' + _.TBL_ARTICLE + ' a'
-      + ' WHERE (a.title LIKE $1)'
-      + '    OR (a.content LIKE $1)'
-      + '    OR (a.keywords LIKE $1)'
-      + ' ORDER BY a.title'
-      + ' OFFSET $2'
-      + ' LIMIT $3';
-    const { result, error: findError } = await this.db.query<at.ArticleSummary>(text, [`%${q}%`, myOffset, myLimit], 'article-text-search');
-    if (findError) throw findError;
+    const text = `
+SELECT a.id, a.slug, a.title, a.keywords, a.created_at, a.updated_at
+FROM ${_.TBL_ARTICLE} a
+WHERE (a.title LIKE ${ph1})
+   OR (a.content LIKE ${ph1})
+   OR (a.keywords LIKE ${ph1})
+ORDER BY a.title
+${offsetClause}
+${limitClause}
+`;
+    
+    const { result, error } = await this.db.query<at.ArticleSummary>(text, params, 'article-text-search');
+
+    if (error) throw new ErrNotFound();
     data = result.rows;
 
     if (with_assets && data.length) {
       // with side effect on data
-      await this.assetService.find_attach_assets<dm.Article>({ user, data, parent_entity_kind: _.ENTITY_ASSET_PARENT_KIND.ARTICLE });
+      await this.assetService._find_attach_assets<dm.Article>({ user, data, parent_entity_kind: _.ENTITY_ASSET_PARENT_KIND.ARTICLE });
     }
 
-    return { data };
+    // no need for meta query, we have not many articles
+    return { data, meta: { row_count: data.length } };
   }
 
   async article_retrieve({ user, id, input }: at.ArticleRetrieveInput): at.ArticleRetrieveOutput {
@@ -53,7 +55,9 @@ export class ArticleService {
       if (!row || error) throw new ErrNotFound(_.MSG_ARTICLE_NOT_FOUND);
       if (with_assets) {
         // with side effect on data
-        await this.assetService.find_attach_assets<dm.Article>({ user, data: [ row ], parent_entity_kind: _.ENTITY_ASSET_PARENT_KIND.ARTICLE });
+        await this.assetService._find_attach_assets<dm.Article>({
+          user, data: [ row ], parent_entity_kind: _.ENTITY_ASSET_PARENT_KIND.ARTICLE,
+        });
       }
       return { data: row };
     } else {
@@ -78,14 +82,14 @@ export class ArticleService {
     const { result, error: updateArticleError } = await this.db.update(_.TBL_ARTICLE, { id }, change, 1);
     if (!result || updateArticleError) throw updateArticleError;
 
-    return { data: result && result.rowCount };
+    return { data: result.success };
   }
 
   _api() {
     return {
-      article_retrieve: this.article_retrieve,
-      article_search: this.article_search,
-      article_update: this.article_update,
+      article_retrieve: this,
+      article_search: this,
+      article_update: this,
     };
   }
 }

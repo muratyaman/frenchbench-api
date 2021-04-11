@@ -1,7 +1,7 @@
 import { FB_SECRET_COOKIE } from './constants';
 
 export function newConfig(penv: IProcessEnv): IConfig {
-  const { NODE_ENV, JWT_SECRET, AWS_S3_CLIENT_ID, AWS_S3_CLIENT_SECRET, ...otherSettings } = penv;
+  const { NODE_ENV, JWT_SECRET, AWS_S3_CLIENT_ID, AWS_S3_CLIENT_SECRET } = penv;
 
   if (!JWT_SECRET) throw new Error('JWT_SECRET undefined');
   if (!AWS_S3_CLIENT_ID) throw new Error('AWS_S3_CLIENT_ID undefined');

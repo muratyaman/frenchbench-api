@@ -7,16 +7,6 @@ import * as _ from './constants';
 import { log } from './utils';
 import { IConfig } from './config';
 
-export function newS3Client(config: IConfig): AWS.S3 {
-  const { accessKeyId, secretAccessKey } = config.s3;
-  return new AWS.S3({ accessKeyId, secretAccessKey });
-}
-
-export interface IFileMgrProps {
-  config: IConfig;
-  s3: AWS.S3;
-}
-
 export type FileSizeType = string | 'small' | 'medium' | 'large';
 
 export interface IFileMgr {
@@ -43,10 +33,7 @@ export interface IReceivedProps {
 }
 
 export class FileService implements IFileMgr {
-  
-  constructor(private config: IConfig, private s3: AWS.S3) {
-    
-  }
+  constructor(private config: IConfig, private s3: AWS.S3) {}
   
   async receiveFiles(req: Request): Promise<IReceivedProps> {
     const formOptions = { multiples: true, keepExtensions: true, hash: 'sha1' };

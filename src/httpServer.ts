@@ -4,18 +4,13 @@ import helmet from 'helmet';
 import { createServer } from 'http';
 import morgan from 'morgan';
 import responseTime from 'response-time';
-import { IApi, IConfig, CookieService, IDb, FileService, SecurityService } from './lib';
 import { makeApiHandler } from './routes/api';
 import { makeApiUploadHandler } from './routes/api/upload';
+import { IFactory } from './factory';
 
-export function newHttpServer(
-  config: IConfig,
-  cookieMgr: CookieService,
-  securityMgr: SecurityService,
-  fileMgr: FileService,
-  db: IDb,
-  api: IApi,
-) {
+export type IHttpServer = ReturnType<typeof newHttpServer>;
+
+export function newHttpServer(f: IFactory) {
   const expressApp = express();
 
   expressApp.use(responseTime());
@@ -23,17 +18,17 @@ export function newHttpServer(
   
   expressApp.use(cors()); // TODO: enable in dev mode
 
-  // expressApp.use(helmet()); // security headers // TODO: disable in dev mode
+  if (f.config.IS_PRODUCTION_MODE) expressApp.use(helmet()); // security headers // TODO: disable in dev mode
   expressApp.use(express.json());
   expressApp.use(express.urlencoded({ extended: true }));
 
-  expressApp.post('/api/upload', makeApiUploadHandler(fileMgr, securityMgr));
-  expressApp.post('/api',        makeApiHandler(config, cookieMgr, securityMgr, db, api));
+  expressApp.post('/api/upload', makeApiUploadHandler(f));
+  expressApp.post('/api',        makeApiHandler(f));
 
-  const health = (req, res) => res.json({ ts: new Date() });
-  expressApp.get('/api/health', health);
-  expressApp.get('/api', health);
-  expressApp.get('/', health);
+  expressApp.get('/api/echo',   f.api._services.echo.echo);
+  expressApp.get('/api/health', f.api._services.health.health);
+  expressApp.get('/api',        f.api._services.health.health);
+  expressApp.get('/',           f.api._services.health.health);
 
   const httpServer = createServer(expressApp);
 

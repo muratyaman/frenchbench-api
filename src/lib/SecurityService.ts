@@ -8,13 +8,7 @@ import { CookieService } from './CookieService';
 import { SessionUserAndError } from './commonTypes';
 
 export class SecurityService {
-  
-  constructor(
-    private config: IConfig,
-    private cookieMgr: CookieService,
-  ) {
-
-  }
+  constructor(private config: IConfig, private cookieMgr: CookieService) {}
 
   getSessionUser(req: Request): SessionUserAndError {
     let user = null, error = null;

@@ -2,7 +2,7 @@ import differenceInSeconds from 'date-fns/differenceInSeconds';
 import * as _ from '../constants';
 import * as at from '../apiTypes';
 import * as dm from '../dbModels';
-import { IDb } from '../db';
+import { IDb } from '../DbService';
 import { EmailService } from '../EmailService';
 import { log, newUuid, rndEmailVerificationCode, validateEmailAddress } from '../utils';
 
@@ -89,8 +89,8 @@ export class VerificationService {
 
   _api() {
     return {
-      verify_email_start: this.verify_email_start,
-      verify_email_finish: this.verify_email_finish,
+      verify_email_start: this,
+      verify_email_finish: this,
     };
   }
 }

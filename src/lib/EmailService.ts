@@ -1,4 +1,4 @@
-import nodemailer, { Transporter, SentMessageInfo } from 'nodemailer';
+import { Transporter, SentMessageInfo } from 'nodemailer';
 import { IConfig } from './config';
 
 export interface IEmail {
@@ -9,12 +9,7 @@ export interface IEmail {
 }
 
 export class EmailService {
-  
-  private transport: Transporter;
-
-  constructor(private config: IConfig) {
-    this.transport = nodemailer.createTransport(this.config.smtp.transportOptions);
-  }
+  constructor(private config: IConfig, private transport: Transporter) {}
 
   async sendEmail({ to, subject, text, html }: IEmail): Promise<SentMessageInfo> {
     return this.transport.sendMail({

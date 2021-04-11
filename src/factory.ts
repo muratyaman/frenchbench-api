@@ -3,51 +3,64 @@ import { Server as WebSocketServer } from 'ws';
 import { Application } from 'express';
 import { ApolloServer } from 'apollo-server-express';
 import { Pool } from 'pg';
-import * as lib from './lib';
+import AWS from 'aws-sdk';
+import { createTransport } from 'nodemailer';
+import { CookieService, DbService, EmailService, FileService, IApi, IConfig, IProcessEnv, newApi, newConfig, SecurityService } from './lib';
 import { newHttpServer } from './httpServer';
 import { newGqlServer } from './gqlServer';
 import { newWebSocketServer } from './webSocketServer';
 
 export interface IFactory {
-  config: lib.IConfig;
-  cookieMgr?: lib.CookieService;
-  securityMgr?: lib.SecurityService;
-  emailMgr?: lib.EmailService;
-  pool?: Pool;
-  db?: lib.IDb;
-  api?: lib.IApi;
-  s3?: AWS.S3;
-  fileMgr?: lib.FileService;
+  // core props
+  config: IConfig;
+  pool: Pool;
+  db: DbService;
+  cookieMgr: CookieService;
+  securityMgr: SecurityService;
+  emailMgr: EmailService;
+  s3: AWS.S3;
+  fileMgr: FileService;
+  api: IApi;
+   // other props
   httpServer?: HttpServer;
   expressApp?: Application;
   gqlServer?: ApolloServer;
   webSocketServer?: WebSocketServer;
 }
 
-export async function factory(penv: lib.IProcessEnv): Promise<IFactory> {
-  const config = lib.newConfig(penv);
-  const f: IFactory = { config };
+export async function factory(penv: IProcessEnv): Promise<IFactory> {
+  const config = newConfig(penv);
+  const { accessKeyId, secretAccessKey } = config.s3;
+  
+  const pool        = new Pool(); // we rely on default env keys and values for PostgreSQL
+  const db          = new DbService(pool);
+  const cookieMgr   = new CookieService(config);
+  const securityMgr = new SecurityService(config, cookieMgr);
+  const transport   = createTransport(config.smtp.transportOptions);
+  const emailMgr    = new EmailService(config, transport);
+  const s3          = new AWS.S3({ accessKeyId, secretAccessKey });
+  const fileMgr     = new FileService(config, s3);
+  const api         = newApi(config, db, securityMgr, emailMgr);
 
-  f.cookieMgr   = new lib.CookieService(f.config);
-  f.securityMgr = new lib.SecurityService(f.config, f.cookieMgr);
+  const f: IFactory = {
+    config,
+    pool,
+    db,
+    cookieMgr,
+    securityMgr,
+    emailMgr,
+    s3,
+    fileMgr,
+    api,
+  };
 
-  f.emailMgr = new lib.EmailService(f.config);
-
-  f.pool = new Pool(); // we rely on default env keys and values for PostgreSQL
-  f.db   = lib.newDb(f.pool);
-
-  f.api  = lib.newApi(config, f.securityMgr, f.emailMgr, f.db);
-
-  f.s3      = lib.newS3Client(f.config);
-  f.fileMgr = new lib.FileService(f.config, f.s3);
-
-  const httpOut = await newHttpServer(f.config, f.cookieMgr, f.securityMgr, f.fileMgr, f.db, f.api);
+  const httpOut = await newHttpServer(f);
   f.httpServer = httpOut.httpServer;
   f.expressApp = httpOut.expressApp;
 
   f.gqlServer = await newGqlServer(f);
 
-  const wsOut = await newWebSocketServer(f.config, f.securityMgr, f.api);
+  const wsOut = await newWebSocketServer(f);
   f.httpServer.on('upgrade', wsOut.onHttpUpgrade);
   f.webSocketServer = wsOut.webSocketServer;
 

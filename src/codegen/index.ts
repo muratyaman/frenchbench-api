@@ -34,6 +34,7 @@ export type Advert = {
   lat?: Maybe<Scalars['Float']>;
   lon?: Maybe<Scalars['Float']>;
   geo_accuracy?: Maybe<Scalars['Int']>;
+  geo_updated_at?: Maybe<Scalars['Date']>;
   created_at?: Maybe<Scalars['Date']>;
   created_by?: Maybe<Scalars['String']>;
   updated_at?: Maybe<Scalars['Date']>;
@@ -202,12 +203,25 @@ export type ListMeta = {
 
 export type Mutation = {
   __typename?: 'Mutation';
+  signUp: SignUpOutput;
+  signIn: SignInOutput;
+  signOut: Scalars['Boolean'];
   createPost: CreatePostOutput;
   updatePost: UpdatePostOutput;
   deletePost: DeletePostOutput;
   createAdvert: CreateAdvertOutput;
   updateAdvert: UpdateAdvertOutput;
   deleteAdvert: DeleteAdvertOutput;
+};
+
+
+export type MutationSignUpArgs = {
+  data: SignUpInput;
+};
+
+
+export type MutationSignInArgs = {
+  data: SignInInput;
 };
 
 
@@ -254,6 +268,7 @@ export type Post = {
   lat?: Maybe<Scalars['Float']>;
   lon?: Maybe<Scalars['Float']>;
   geo_accuracy?: Maybe<Scalars['Int']>;
+  geo_updated_at?: Maybe<Scalars['Date']>;
   created_at?: Maybe<Scalars['Date']>;
   created_by?: Maybe<Scalars['String']>;
   updated_at?: Maybe<Scalars['Date']>;
@@ -313,7 +328,7 @@ export type Query = {
 
 
 export type QueryUserArgs = {
-  filter?: Maybe<UserFilter>;
+  filter: UserFilter;
 };
 
 
@@ -323,7 +338,7 @@ export type QueryUsersArgs = {
 
 
 export type QueryPostArgs = {
-  filter?: Maybe<PostFilter>;
+  filter: PostFilter;
 };
 
 
@@ -333,12 +348,39 @@ export type QueryPostsArgs = {
 
 
 export type QueryAdvertArgs = {
-  filter?: Maybe<AdvertFilter>;
+  filter: AdvertFilter;
 };
 
 
 export type QueryAdvertsArgs = {
   filter?: Maybe<AdvertsFilter>;
+};
+
+export type SignInInput = {
+  username: Scalars['String'];
+  password: Scalars['String'];
+};
+
+export type SignInOutput = {
+  __typename?: 'SignInOutput';
+  id: Scalars['ID'];
+  username: Scalars['String'];
+  token_type: Scalars['String'];
+  token: Scalars['String'];
+};
+
+export type SignUpInput = {
+  username: Scalars['String'];
+  password: Scalars['String'];
+  password_confirm: Scalars['String'];
+};
+
+export type SignUpOutput = {
+  __typename?: 'SignUpOutput';
+  id: Scalars['ID'];
+  username: Scalars['String'];
+  token_type: Scalars['String'];
+  token: Scalars['String'];
 };
 
 export type UpdateAdvertInput = {
@@ -546,6 +588,10 @@ export type ResolversTypes = {
   PostSummary: ResolverTypeWrapper<PostSummaryMapper>;
   PostsFilter: ResolverTypeWrapper<any>;
   Query: ResolverTypeWrapper<{}>;
+  SignInInput: ResolverTypeWrapper<any>;
+  SignInOutput: ResolverTypeWrapper<any>;
+  SignUpInput: ResolverTypeWrapper<any>;
+  SignUpOutput: ResolverTypeWrapper<any>;
   UpdateAdvertInput: ResolverTypeWrapper<any>;
   UpdateAdvertOutput: ResolverTypeWrapper<any>;
   UpdatePostInput: ResolverTypeWrapper<any>;
@@ -589,6 +635,10 @@ export type ResolversParentTypes = {
   PostSummary: PostSummaryMapper;
   PostsFilter: any;
   Query: {};
+  SignInInput: any;
+  SignInOutput: any;
+  SignUpInput: any;
+  SignUpOutput: any;
   UpdateAdvertInput: any;
   UpdateAdvertOutput: any;
   UpdatePostInput: any;
@@ -611,6 +661,7 @@ export type AdvertResolvers<ContextType = IContext, ParentType extends Resolvers
   lat?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
   lon?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
   geo_accuracy?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  geo_updated_at?: Resolver<Maybe<ResolversTypes['Date']>, ParentType, ContextType>;
   created_at?: Resolver<Maybe<ResolversTypes['Date']>, ParentType, ContextType>;
   created_by?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   updated_at?: Resolver<Maybe<ResolversTypes['Date']>, ParentType, ContextType>;
@@ -743,6 +794,9 @@ export type ListMetaResolvers<ContextType = IContext, ParentType extends Resolve
 };
 
 export type MutationResolvers<ContextType = IContext, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = {
+  signUp?: Resolver<ResolversTypes['SignUpOutput'], ParentType, ContextType, RequireFields<MutationSignUpArgs, 'data'>>;
+  signIn?: Resolver<ResolversTypes['SignInOutput'], ParentType, ContextType, RequireFields<MutationSignInArgs, 'data'>>;
+  signOut?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   createPost?: Resolver<ResolversTypes['CreatePostOutput'], ParentType, ContextType, RequireFields<MutationCreatePostArgs, 'data'>>;
   updatePost?: Resolver<ResolversTypes['UpdatePostOutput'], ParentType, ContextType, RequireFields<MutationUpdatePostArgs, 'id' | 'data'>>;
   deletePost?: Resolver<ResolversTypes['DeletePostOutput'], ParentType, ContextType, RequireFields<MutationDeletePostArgs, 'id'>>;
@@ -762,6 +816,7 @@ export type PostResolvers<ContextType = IContext, ParentType extends ResolversPa
   lat?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
   lon?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
   geo_accuracy?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  geo_updated_at?: Resolver<Maybe<ResolversTypes['Date']>, ParentType, ContextType>;
   created_at?: Resolver<Maybe<ResolversTypes['Date']>, ParentType, ContextType>;
   created_by?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   updated_at?: Resolver<Maybe<ResolversTypes['Date']>, ParentType, ContextType>;
@@ -793,12 +848,28 @@ export type PostSummaryResolvers<ContextType = IContext, ParentType extends Reso
 
 export type QueryResolvers<ContextType = IContext, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = {
   me?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
-  user?: Resolver<ResolversTypes['User'], ParentType, ContextType, RequireFields<QueryUserArgs, never>>;
+  user?: Resolver<ResolversTypes['User'], ParentType, ContextType, RequireFields<QueryUserArgs, 'filter'>>;
   users?: Resolver<ResolversTypes['UserList'], ParentType, ContextType, RequireFields<QueryUsersArgs, never>>;
-  post?: Resolver<ResolversTypes['Post'], ParentType, ContextType, RequireFields<QueryPostArgs, never>>;
+  post?: Resolver<ResolversTypes['Post'], ParentType, ContextType, RequireFields<QueryPostArgs, 'filter'>>;
   posts?: Resolver<ResolversTypes['PostList'], ParentType, ContextType, RequireFields<QueryPostsArgs, never>>;
-  advert?: Resolver<ResolversTypes['Advert'], ParentType, ContextType, RequireFields<QueryAdvertArgs, never>>;
+  advert?: Resolver<ResolversTypes['Advert'], ParentType, ContextType, RequireFields<QueryAdvertArgs, 'filter'>>;
   adverts?: Resolver<ResolversTypes['AdvertList'], ParentType, ContextType, RequireFields<QueryAdvertsArgs, never>>;
+};
+
+export type SignInOutputResolvers<ContextType = IContext, ParentType extends ResolversParentTypes['SignInOutput'] = ResolversParentTypes['SignInOutput']> = {
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  username?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  token_type?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  token?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type SignUpOutputResolvers<ContextType = IContext, ParentType extends ResolversParentTypes['SignUpOutput'] = ResolversParentTypes['SignUpOutput']> = {
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  username?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  token_type?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  token?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
 export type UpdateAdvertOutputResolvers<ContextType = IContext, ParentType extends ResolversParentTypes['UpdateAdvertOutput'] = ResolversParentTypes['UpdateAdvertOutput']> = {
@@ -879,6 +950,8 @@ export type Resolvers<ContextType = IContext> = {
   PostList?: PostListResolvers<ContextType>;
   PostSummary?: PostSummaryResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
+  SignInOutput?: SignInOutputResolvers<ContextType>;
+  SignUpOutput?: SignUpOutputResolvers<ContextType>;
   UpdateAdvertOutput?: UpdateAdvertOutputResolvers<ContextType>;
   UpdatePostOutput?: UpdatePostOutputResolvers<ContextType>;
   User?: UserResolvers<ContextType>;

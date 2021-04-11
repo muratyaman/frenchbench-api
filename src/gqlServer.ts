@@ -1,11 +1,14 @@
 import { ApolloServer, gql } from 'apollo-server-express';
 import fs from 'fs';
 import path from 'path';
-import * as lib from './lib';
 import * as codegen from './codegen';
 import { IContext } from './types';
 import { IFactory } from './factory';
-import { ErrNotFound } from './lib';
+import { getFields } from './gqlUtils';
+import {
+  ErrBadRequest, ErrNotFound, ErrUnauthorized, UserPublic,
+  EntityKindEnum, AssetMediaTypeEnum, AssetPurposeEnum, AssetTypeEnum,
+} from './lib';
 
 export function newGqlServer(f: IFactory): ApolloServer {
   const schemaFile = path.resolve(__dirname, '..', 'schema.gql');
@@ -17,12 +20,9 @@ export function newGqlServer(f: IFactory): ApolloServer {
     typeDefs,
     resolvers,
     context({ req }): IContext {
-      const { user, error } = f.securityMgr.getSessionUser(req);
-      console.log('gql ctx', user, error);
-      return {
-        user,
-        f,
-      };
+      const { user, error: tokenError } = f.securityMgr.getSessionUser(req);
+      console.log('gql ctx', user, tokenError);
+      return { f, user, tokenError };
     },
   });
 
@@ -31,59 +31,74 @@ export function newGqlServer(f: IFactory): ApolloServer {
   return gqlServer;
 }
 
-export function makeResolvers(f: IFactory): codegen.Resolvers {
-
-  async function findUser(
-    input: { id?: string | null; username?: string | null; },
-    user: lib.SessionUser,
-  ): Promise<lib.UserPublic> {
-    let data: lib.UserPublic;
-    if (input.id) {
-      const result1 = await f.api.user_retrieve({ user, input });
-      data = result1.data;
-    }
-    if (input.username) {
-      const result2 = await f.api.user_retrieve_by_username({ user, input });
-      data = result2.data;
-    }
-    return data;
-  }
-
-
+export function makeResolvers({ api }: IFactory): codegen.Resolvers {
+  const { _isAllowed, _services } = api;
   return {
     Query: {
-      me: async(_, args, ctx) => {
+      me: async(_, args, { user, tokenError }, info) => {
+        _isAllowed({ action: 'me', user, tokenError }); // will throw error
         let me;
-        if (ctx.user && f.api) {
-          const { data } = await f.api.user_retrieve_self({ user: ctx.user });
+        if (user) {
+          const { data } = await _services.user.me({ user, input: { fields: getFields(info) } });
           me = data;
         }
-        if (!me) throw new lib.ErrUnauthorized();
+        if (!me) throw new ErrUnauthorized();
         return me;
       },
-      user: async (_, args, ctx) => {
-        if (!ctx.user) throw new lib.ErrUnauthorized();
-        if (!args.filter.id && !args.filter.username) throw new lib.ErrNotFound();
-        return findUser(args.filter, ctx.user);
+      user: async (_, { filter }, { user, tokenError }, info) => {
+        _isAllowed({ action: 'user_retrieve', user, tokenError }); // will throw error
+        let data: UserPublic;
+        if (filter.id) {
+          const { data: user1 } = await _services.user.user_retrieve({ user, input: { ...filter, fields: getFields(info) } });
+          if (user1) data = user1;
+        } else if (filter.username) {
+          const { data: user2 } = await _services.user.user_retrieve_by_username({ user, input: { ...filter, fields: getFields(info) } });
+          if (user2) data = user2;
+        } else throw new ErrBadRequest();
+        if (!data) throw new ErrNotFound();
+        return data;
       },
-      users: async (_, args, ctx) => {
-        if (!ctx.user) throw new lib.ErrUnauthorized();
-        const { data, meta } = await f.api.user_search({ user: ctx.user, input: args.filter });
+      users: async (_, { filter }, { user, tokenError }, info) => {
+        _isAllowed({ action: 'user_search', user, tokenError }); // will throw error
+        const { data, meta } = await _services.user.user_search({ user, input: { ...filter, fields: getFields(info) }});
         return { data: data ?? [], meta };
       },
-      posts: async (_, args, ctx) => {
-        if (!ctx.user) throw new lib.ErrUnauthorized();
-        const { data, meta } = await f.api.post_search({ user: ctx.user, input: args.filter });
-        return { data: data ?? [], meta };
+      post: async (_, { filter }, { user, tokenError }, info) => {
+        _isAllowed({ action: 'post_retrieve', user, tokenError }); // will throw error
+        const { data } = await _services.post.post_retrieve({ user, input: { ...filter, fields: getFields(info) } });
+        return data;
       },
-      adverts: async (_, args, ctx) => {
-        if (!ctx.user) throw new lib.ErrUnauthorized();
-        const { data, meta } = await f.api.advert_search({ user: ctx.user, input: args.filter });
-        return { data: data ?? [], meta };
+      posts: async (_, { filter }, { user, tokenError }, info) => {
+        _isAllowed({ action: 'post_search', user, tokenError }); // will throw error
+        return _services.post.post_search({ user, input: { ...filter, fields: getFields(info) } });
+      },
+      advert: async (_, { filter }, { user, tokenError }, info) => {
+        _isAllowed({ action: 'advert_retrieve', user, tokenError }); // will throw error
+        const { data } = await _services.advert.advert_retrieve({ user, input: { ...filter, fields: getFields(info) } });
+        return data;
+      },
+      adverts: async (_, { filter }, { user, tokenError }, info) => {
+        _isAllowed({ action: 'advert_search', user, tokenError }); // will throw error
+        return _services.advert.advert_search({ user, input: { ...filter, fields: getFields(info) } });
       },
     },
     Mutation: {
-
+      signUp: async (_, { data }) => {
+        const res = await _services.user.signup({ input: data }); // will throw error
+        if (!res.data) throw new ErrBadRequest();
+        // TODO: set session cookie
+        return res.data;
+      },
+      signIn: async (_, { data }) => {
+        const res = await _services.user.signin({ input: data }); // will throw error
+        if (!res.data) throw new ErrBadRequest();
+        // TODO: set session cookie
+        return res.data;
+      },
+      signOut: async () => {
+        // TODO: set session cookie to ''
+        return true;
+      },
     },
     User: {
       id: p => p.id,
@@ -102,32 +117,32 @@ export function makeResolvers(f: IFactory): codegen.Resolvers {
     },
     Advert: {
       owner: async (p, args, ctx) => {
-        const { data } = await f.api.user_retrieve({ id: p.user_id });
+        const { data } = await _services.user.user_retrieve({ id: p.user_id });
         return data;
       },
       assets: async (p, args, ctx) => {
-        const { data = [], meta } = await f.api.entity_asset_search({
-          input: { parent_entity_kind: lib.EntityKindEnum.ADVERTS, parent_entity_ids: [ p.id ] },
+        const { data = [], meta } = await _services.asset.entity_asset_search({
+          input: { parent_entity_kind: EntityKindEnum.ADVERTS, parent_entity_ids: [ p.id ] },
         });
-        return { data, meta, parent_entity_kind: lib.EntityKindEnum.ADVERTS, parent_entity_id: p.id };
+        return { data, meta, parent_entity_kind: EntityKindEnum.ADVERTS, parent_entity_id: p.id };
       },
     },
     Post: {
       owner: async (p, args, ctx) => {
-        const { data } = await f.api.user_retrieve({ id: p.user_id });
+        const { data } = await _services.user.user_retrieve({ id: p.user_id });
         return data;
       },
       assets: async (p, args, ctx) => {
-        const { data = [], meta } = await f.api.entity_asset_search({
-          input: { parent_entity_kind: lib.EntityKindEnum.POSTS, parent_entity_ids: [ p.id ] },
+        const { data = [], meta } = await _services.asset.entity_asset_search({
+          input: { parent_entity_kind: EntityKindEnum.POSTS, parent_entity_ids: [ p.id ] },
         });
-        return { data, meta, parent_entity_kind: lib.EntityKindEnum.POSTS, parent_entity_id: p.id };
+        return { data, meta, parent_entity_kind: EntityKindEnum.POSTS, parent_entity_id: p.id };
       },
     },
     AssetRelation: {
       asset: async (p, args, ctx) => {
         if (p.asset) return p.asset;
-        const { data } = await f.api.asset_retrieve({ id: p.asset_id });
+        const { data } = await _services.asset.asset_retrieve({ id: p.asset_id });
         return data;
       },
     },
@@ -142,21 +157,21 @@ export function makeResolvers(f: IFactory): codegen.Resolvers {
     },
     // ENUMS ==============================================
     AssetMediaTypeEnum: {
-      IMAGE_JPEG: lib.AssetMediaTypeEnum.IMAGE_JPEG,
-      IMAGE_PNG: lib.AssetMediaTypeEnum.IMAGE_PNG,
+      IMAGE_JPEG: AssetMediaTypeEnum.IMAGE_JPEG,
+      IMAGE_PNG: AssetMediaTypeEnum.IMAGE_PNG,
     },
     AssetPurposeEnum: {
-      ADVERT_IMAGE: lib.AssetPurposeEnum.ADVERT_IMAGE,
-      POST_IMAGE: lib.AssetPurposeEnum.POST_IMAGE,
+      ADVERT_IMAGE: AssetPurposeEnum.ADVERT_IMAGE,
+      POST_IMAGE: AssetPurposeEnum.POST_IMAGE,
     },
     AssetTypeEnum: {
-      IMAGE: lib.AssetTypeEnum.IMAGE,
+      IMAGE: AssetTypeEnum.IMAGE,
     },
     EntityKindEnum: {
-      ADVERTS: lib.EntityKindEnum.ADVERTS,
-      ARTICLES: lib.EntityKindEnum.ARTICLES,
-      POSTS: lib.EntityKindEnum.POSTS,
-      USERS: lib.EntityKindEnum.USERS,
+      ADVERTS: EntityKindEnum.ADVERTS,
+      ARTICLES: EntityKindEnum.ARTICLES,
+      POSTS: EntityKindEnum.POSTS,
+      USERS: EntityKindEnum.USERS,
     },
   }
 }

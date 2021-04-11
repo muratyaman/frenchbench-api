@@ -75,11 +75,13 @@ export type AssetRelation = ct.AuditFull & {
 };
 export type EntityAsset = AssetRelation; // alias
 
-export type Article = ct.GeoLocation & ct.AuditCreated & ct.BasicContent;
+export type BaseContent = ct.GeoLocation & ct.AuditCreated & ct.BasicContent;
 
-export type Post = Article;
+export type Article = BaseContent;
 
-export type Advert = Article & {
+export type Post = BaseContent;
+
+export type Advert = BaseContent & {
   is_buying: number;
   is_service: number;
   price: number;

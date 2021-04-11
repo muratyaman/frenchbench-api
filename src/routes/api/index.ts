@@ -1,17 +1,12 @@
 import { Request, Response } from 'express';
-import { ErrUnauthorized, ErrUnknownAction, IApi, IConfig, CookieService, IDb, SecurityService, log, newUuid } from '../../lib';
+import { IFactory } from '../../factory';
+import { ErrUnauthorized, ErrUnknownAction, log, newUuid } from '../../lib';
 
 export interface IApiHandler {
   (req: Request, res: Response): Promise<void>;
 }
 
-export function makeApiHandler(
-  config: IConfig,
-  cookieMgr: CookieService,
-  securityMgr: SecurityService,
-  db: IDb,
-  api: IApi,
-): IApiHandler {
+export function makeApiHandler({ config, cookieMgr, securityMgr, db, api }: IFactory): IApiHandler {
 
   async function handleApi(req: Request, res: Response): Promise<void> {
     const t1 = new Date();
@@ -26,16 +21,18 @@ export function makeApiHandler(
       
       if (!config.IS_PRODUCTION_MODE) {
         const now = await db.now(); // make sure we can connect
-        log(rid, 'db now', now);
+        log(rid, 'db.now', now);
       }
 
       const { user, error: tokenError } = securityMgr.getSessionUser(req);
 
       const { action = '', id = null, input = {} } = req.body;
+      const [ service, method ] = action.split('.');
+      const { _isAllowed, _services, _actions } = api;
 
-      if (action && (action !== '_isAllowed') && (action in api)) {
+      if (service && method && (service in _services) && (method in _actions) && (method in _services[service])) {
         try {
-          api._isAllowed({ action, user, id, input, tokenError }); // will throw error
+          _isAllowed({ action: method, user, id, tokenError }); // will throw error
         } catch (err) {
           if (err instanceof ErrUnauthorized) {
             token = '.'; // invalidate cookie
@@ -46,18 +43,18 @@ export function makeApiHandler(
         throw new ErrUnknownAction();
       }
 
-      output = await api[action]({ user, id, input }); // run api action
+      output = await _services[service][method]({ user, id, input });
 
       if (output && output.data && output.data.token) { // special case
         token = output.data.token;
       }
 
     } catch (err) {
-      log(rid, 'error', err);
+      log(rid, 'ERROR', err);
       output = { error: err.message };
     }
 
-    if (token) {
+    if (token !== null) { // side-effect on api[action]
       const cookieStr = cookieMgr.serialize(token);
       res.setHeader('Set-Cookie', cookieStr); // keep auth token as cookie on frontend
     }

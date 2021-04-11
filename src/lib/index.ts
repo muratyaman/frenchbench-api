@@ -4,7 +4,7 @@ export * from './commonTypes';
 export * from './config';
 export * from './constants';
 export * from './CookieService';
-export * from './db';
+export * from './DbService';
 export * from './dbModels';
 export * from './EmailService';
 export * from './errors';

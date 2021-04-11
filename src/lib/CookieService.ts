@@ -2,10 +2,7 @@ import cookie from 'cookie';
 import { IConfig } from './config';
 
 export class CookieService {
-
-  constructor(private config: IConfig) {
-
-  }
+  constructor(private config: IConfig) {}
 
   serialize(userSecret: string): string {
     const { secretKeyName, sameSite, secure, maxAge, httpOnly, path } = this.config.cookies;

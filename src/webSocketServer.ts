@@ -1,6 +1,6 @@
-import 'dotenv/config'; // read .env file
 import WebSocket from 'ws';
-import { newUuid, log, IConfig, SecurityService, IApi } from './lib';
+import { IFactory } from './factory';
+import { newUuid, log } from './lib';
 
 export const MSG_KIND_SES    = 'ses'; // connected, server => session ID => client
 export const MSG_KIND_GEO    = 'geo'; // geolocation update
@@ -58,20 +58,15 @@ export class FbHub {
 
 export type IWebSocketServer = ReturnType<typeof newWebSocketServer>;
 
-export async function newWebSocketServer(
-  config: IConfig,
-  securityMgr: SecurityService,
-  api: IApi,
-) {
-
+export async function newWebSocketServer(f: IFactory) {
   const webSocketServer = new WebSocket.Server({ noServer: true });
   const hub = new FbHub();
 
   function onHttpUpgrade(request, socket, head) {
     log('onHttpUpgrade');
-    const { user, error } = securityMgr.getSessionUser(request);
+    const { user, error } = f.securityMgr.getSessionUser(request);
     log('onHttpUpgrade user', user);
-    if (!user) {
+    if (!user || error) {
       log('no user!');
       socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
       socket.destroy();
@@ -149,7 +144,7 @@ export async function newWebSocketServer(
                 geo_accuracy: accuracy,
               };
               // no 'await', ignore result
-              api.usergeo_update_self({ user: owner, input });
+              f.api._services.user.usergeo_update_self({ user: owner, input });
             }
           }
           break;
