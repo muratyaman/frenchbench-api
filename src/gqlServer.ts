@@ -8,7 +8,7 @@ import { getFields } from './gqlUtils';
 import {
   ErrBadRequest, ErrNotFound, ErrUnauthorized, UserPublic,
   EntityKindEnum, AssetMediaTypeEnum, AssetPurposeEnum, AssetTypeEnum,
-} from './lib';
+} from './fblib';
 
 export function newGqlServer(f: IFactory): ApolloServer {
   const schemaFile = path.resolve(__dirname, '..', 'schema.gql');
@@ -113,7 +113,7 @@ export function makeResolvers({ api }: IFactory): codegen.Resolvers {
       neighbourhood: p => p.neighbourhood ?? null,
     },
     Asset: {
-
+      id: p => p.id,
     },
     Advert: {
       owner: async (p, args, ctx) => {

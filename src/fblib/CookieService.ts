@@ -10,7 +10,7 @@ export class CookieService {
     return cookie.serialize(secretKeyName, userSecret, options);
   }
 
-  parse(cookieStr: string): any {
+  parse(cookieStr: string): string | null {
     const { secretKeyName } = this.config.cookies;
     const cookies = cookie.parse(cookieStr);
     return cookies[secretKeyName] || null;

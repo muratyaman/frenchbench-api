@@ -7,9 +7,11 @@ import { ErrForbidden, ErrNotFound } from '../errors';
 import { hash, newRow, newUuid } from '../utils';
 
 export class AssetService {
-  constructor(private db: DbService) {}
+  constructor(private db: DbService) {
+    // do nothing
+  }
 
-  async asset_create({ user, input }) {
+  async asset_create({ user, input }: at.AssetCreateInput): Promise<at.AssetCreateOutput> {
     if (!user) throw new ErrForbidden();
 
     // TODO: validate input
@@ -20,7 +22,7 @@ export class AssetService {
     return { data: result.success ? id : null, error };
   }
 
-  async asset_search({ input }: at.AssetSearchInput): at.AssetSearchOutput {
+  async asset_search({ input }: at.AssetSearchInput): Promise<at.AssetSearchOutput> {
     let data: dm.Asset[] = [];
     const { ids = [] } = input;
     const conditions = [];
@@ -58,7 +60,7 @@ ORDER BY a.created_at DESC
     return { data, meta };
   }
 
-  async asset_retrieve({ id }: at.AssetRetrieveInput): at.AssetRetrieveOutput {
+  async asset_retrieve({ id }: at.AssetRetrieveInput): Promise<at.AssetRetrieveOutput> {
     // TODO: validate uuid
     // TODO: analytics of 'views' per record per visitor per day
     const { row, error } = await this.db.find<dm.Asset>(_.TBL_ASSET, { id }, 1);
@@ -66,7 +68,7 @@ ORDER BY a.created_at DESC
     return { data: row };
   }
 
-  async asset_delete({ user, id }: at.AssetDeleteInput): at.AssetDeleteOutput {
+  async asset_delete({ user, id }: at.AssetDeleteInput): Promise<at.AssetDeleteOutput> {
     // TODO: validate uuid
     // TODO: delete related records
     const { data: found } = await this.asset_retrieve({ user, id });
@@ -76,7 +78,7 @@ ORDER BY a.created_at DESC
     return { data: result.success, error };
   }
 
-  async entity_asset_create({ user, input }: at.EntityAssetCreateInput): at.EntityAssetCreateOutput {
+  async entity_asset_create({ user, input }: at.EntityAssetCreateInput): Promise<at.EntityAssetCreateOutput> {
     if (!user) throw new ErrForbidden();
 
     // TODO: validate input
@@ -96,7 +98,7 @@ ORDER BY a.created_at DESC
     return { data: 0 < result.rowCount ? id : null, error };
   }
 
-  async entity_asset_search({ user, input }: at.EntityAssetSearchInput): at.EntityAssetSearchOutput {
+  async entity_asset_search({ user, input }: at.EntityAssetSearchInput): Promise<at.EntityAssetSearchOutput> {
     let data = [];
     const { parent_entity_kind = null, parent_entity_ids = [], offset = '0', limit = '0' } = input;
 
@@ -141,7 +143,7 @@ ORDER BY a.created_at DESC
     return { data };
   }
 
-  async entity_asset_retrieve({ user, id }: at.EntityAssetRetrieveInput): at.EntityAssetRetrieveOutput {
+  async entity_asset_retrieve({ user, id }: at.EntityAssetRetrieveInput): Promise<at.EntityAssetRetrieveOutput> {
     // TODO: validate uuid
     // TODO: analytics of 'views' per record per visitor per day
     const { row, error } = await this.db.find<dm.EntityAsset>(_.TBL_ENTITY_ASSET, { id }, 1);
@@ -149,7 +151,7 @@ ORDER BY a.created_at DESC
     return { data: row };
   }
 
-  async entity_asset_delete({ user, id }: at.EntityAssetDeleteInput): at.EntityAssetDeleteOutput {
+  async entity_asset_delete({ user, id }: at.EntityAssetDeleteInput): Promise<at.EntityAssetDeleteOutput> {
     // TODO: validate uuid
     // TODO: delete related records
     const { data: found } = await this.entity_asset_retrieve({ user, id });

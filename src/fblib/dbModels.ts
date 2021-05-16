@@ -47,11 +47,11 @@ export enum AssetMediaTypeEnum {
 }
 
 export interface AssetMeta {
-  Key: string; // uploads/images/large/030e8ef3-17a2-4dbf-a8ae-41872f04fa35.jpg
-  key: string; // uploads/images/large/030e8ef3-17a2-4dbf-a8ae-41872f04fa35.jpg
+  Key: string; // uploads/images/large/[uuid].jpg
+  key: string; // uploads/images/large/[uuid].jpg
   ETag: string; // ec6f93cbfc059c411be1a73e17df583f
   Bucket: string; // frenchbench
-  Location: string; // https://frenchbench.s3.eu-west-2.amazonaws.com/uploads/images/large/030e8ef3-17a2-4dbf-a8ae-41872f04fa35.jpg
+  Location: string; // https://[bucket].s3.eu-west-2.amazonaws.com/uploads/images/large/[uuid].jpg
   file_size: number; // 336007
 }
 
@@ -60,7 +60,7 @@ export type Asset = ct.AuditFull & {
   asset_type: AssetTypeEnum;
   media_type: string; // image/jpeg
   label: string; // image uploaded 2021-02-07T20:39:09.437Z
-  url: string; // 030e8ef3-17a2-4dbf-a8ae-41872f04fa35.jpg
+  url: string; // [uuid].jpg
   meta: AssetMeta;
 };
 
@@ -94,7 +94,7 @@ export interface EmailVerification {
   code: string;
   created_at: Date;
   used: number; // used as boolean
-    
+
   // unique [email, code]
 }
 
@@ -104,6 +104,6 @@ export interface PhoneVerification {
   code: string;
   created_at: Date;
   used: number; // used as boolean
-    
+
   // unique [email, code]
 }

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { IFactory } from '../../factory';
-import { ErrUnauthorized, ErrUnknownAction, log, newUuid } from '../../lib';
+import { ErrUnauthorized, ErrUnknownAction, log, newUuid } from '../../fblib';
 
 export interface IApiHandler {
   (req: Request, res: Response): Promise<void>;

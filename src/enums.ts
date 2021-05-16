@@ -1,1 +1,1 @@
-export { AssetMediaTypeEnum, AssetPurposeEnum, AssetTypeEnum, EntityKindEnum } from './lib/dbModels';
+export { AssetMediaTypeEnum, AssetPurposeEnum, AssetTypeEnum, EntityKindEnum } from './fblib/dbModels';

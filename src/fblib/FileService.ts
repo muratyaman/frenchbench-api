@@ -64,7 +64,7 @@ export class FileService implements IFileMgr {
     return sharp(filePath).toBuffer();
   }
 
-  async resizeAndUpload(readBuffer: Buffer, file_name: string, size: FileSizeType): Promise<any> {
+  async resizeAndUpload(readBuffer: Buffer, file_name: string, size: FileSizeType): Promise<AWS.S3.ManagedUpload.SendData> {
     let result: any = {};
     try {
       const image = await this.resizeImage(readBuffer, _.MAX_FILE_DIMS[size]);
@@ -83,7 +83,7 @@ export class FileService implements IFileMgr {
     return sharp(readBuffer).resize({ width }).toBuffer();
   }
 
-  async s3UploadFile(Body: Buffer, file_name: string, size: FileSizeType): Promise<any> {
+  async s3UploadFile(Body: Buffer, file_name: string, size: FileSizeType): Promise<AWS.S3.ManagedUpload.SendData> {
     const { Bucket, ACL, folders } = this.config.s3;
     const params = {
       Bucket,

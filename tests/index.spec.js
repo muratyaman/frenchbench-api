@@ -1,14 +1,13 @@
 import { expect } from 'chai';
-import dotenv from 'dotenv';
 import request from 'supertest';
-import { bootSimple } from'../src/bootSimple';
+import { factory } from './factory';
 
-dotenv.config(); // read .env file
+describe('FB API', async () => {
+  const penv = {};
+  const f = await factory(penv);
 
-describe('FB API', () => {
-  const app = bootSimple({ penv: process.env, cwd: process.cwd() });
-  const config = app.get('config');
-  const agent = request.agent(app);
+  const config = f.config;
+  const agent = request.agent(f.expressApp);
 
   it('should respond for /api', (done) => {
     agent.get('/api')

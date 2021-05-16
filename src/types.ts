@@ -1,5 +1,5 @@
 import { IFactory } from './factory';
-import { SessionUser } from './lib';
+import { SessionUser } from './fblib';
 
 export interface IContext {
   f: IFactory;

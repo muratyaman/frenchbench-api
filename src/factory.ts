@@ -5,7 +5,7 @@ import { ApolloServer } from 'apollo-server-express';
 import { Pool } from 'pg';
 import AWS from 'aws-sdk';
 import { createTransport } from 'nodemailer';
-import { CookieService, DbService, EmailService, FileService, IApi, IConfig, IProcessEnv, newApi, newConfig, SecurityService } from './lib';
+import { CookieService, DbService, EmailService, FileService, IApi, IConfig, IProcessEnv, newApi, newConfig, SecurityService } from './fblib';
 import { newHttpServer } from './httpServer';
 import { newGqlServer } from './gqlServer';
 import { newWebSocketServer } from './webSocketServer';
@@ -21,7 +21,7 @@ export interface IFactory {
   s3: AWS.S3;
   fileMgr: FileService;
   api: IApi;
-   // other props
+   // other props initialized with delay
   httpServer?: HttpServer;
   expressApp?: Application;
   gqlServer?: ApolloServer;

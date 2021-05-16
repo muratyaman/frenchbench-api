@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { IFactory } from '../../../factory';
-import { ErrUnauthorized, ERR_NO_FILE_UPLOADED, log, newUuid } from '../../../lib';
+import { ErrUnauthorized, ERR_NO_FILE_UPLOADED, log, newUuid } from '../../../fblib';
 
 export interface IApiUploadHandler {
   (req: Request, res: Response): Promise<void>;
@@ -25,7 +25,7 @@ export function makeApiUploadHandler({ fileMgr, securityMgr }: IFactory): IApiUp
         throw new ErrUnauthorized();
       }
 
-      const { files, fields } = await fileMgr.receiveFiles(req);
+      const { files } = await fileMgr.receiveFiles(req);
       const { fb_file } = files || {};
       if (!fb_file) throw new Error(ERR_NO_FILE_UPLOADED);
       

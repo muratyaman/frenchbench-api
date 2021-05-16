@@ -1,4 +1,4 @@
-import { AdvertDetails, AdvertSummary, Asset, AssetRelation, EntityKindEnum, PostDetails, PostSummary, UserPublic, UserSummary } from './lib';
+import { AdvertDetails, AdvertSummary, Asset, AssetRelation, EntityKindEnum, PostDetails, PostSummary, UserPublic, UserSummary } from './fblib';
 
 export type UserMapper = UserPublic;
 export type UserSummaryMapper = UserSummary;

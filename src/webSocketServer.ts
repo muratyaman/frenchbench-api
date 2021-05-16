@@ -1,6 +1,6 @@
 import WebSocket from 'ws';
 import { IFactory } from './factory';
-import { newUuid, log } from './lib';
+import { newUuid, log } from './fblib';
 
 export const MSG_KIND_SES    = 'ses'; // connected, server => session ID => client
 export const MSG_KIND_GEO    = 'geo'; // geolocation update

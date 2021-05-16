@@ -12,7 +12,7 @@ export class VerificationService {
     private db: IDb,
     private emailMgr: EmailService,
   ) {
-
+    // do nothing
   }
 
   // TODO: captcha

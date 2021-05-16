@@ -7,7 +7,7 @@ export const up = knex => {
     table.string('slug', 100).notNullable();
     table.text('title').notNullable();
     table.text('content').notNullable();
-    table.text('keywords').nullable();
+    table.text('tags').nullable();
 
     table.timestamp('created_at', { useTz: true }).notNullable();
     table.timestamp('updated_at', { useTz: true }).notNullable();

@@ -7,9 +7,14 @@ import { ErrForbidden, ErrNotFound } from '../errors';
 import { AssetService } from './AssetService';
 
 export class ArticleService {
-  constructor(private db: DbService, private assetService: AssetService) {}
+  constructor(
+    private db: DbService,
+    private assetService: AssetService,
+  ) {
+    // do nothing
+  }
 
-  async article_search({ user, input }: at.ArticleSearchInput): at.ArticleSearchOutput {
+  async article_search({ user, input }: at.ArticleSearchInput): Promise<at.ArticleSearchOutput> {
     let data = [];
     // eslint-disable-next-line prefer-const
     let { q = '', with_assets = false } = input;
@@ -45,7 +50,7 @@ ${limitClause}
     return { data, meta: { row_count: data.length } };
   }
 
-  async article_retrieve({ user, id, input }: at.ArticleRetrieveInput): at.ArticleRetrieveOutput {
+  async article_retrieve({ user, id, input }: at.ArticleRetrieveInput): Promise<at.ArticleRetrieveOutput> {
     // TODO: validate uuid
     // TODO: analytics of 'views' per record per visitor per day
     const { slug = '', with_assets = false } = input;
@@ -65,9 +70,9 @@ ${limitClause}
     }
   }
 
-  async article_update({ user, id, input }) {
+  async article_update({ user, id, input }: at.ArticleUpdateInput): Promise<at.ArticleUpdateOutput> {
     // eslint-disable-next-line prefer-const
-    let { slug, title, content, keywords } = input;
+    let { slug, title, content, tags } = input;
     const dt = new Date();
 
     const { row: articleFound, error: findArticleErr } = await this.db.find<dm.Article>(_.TBL_ARTICLE, { id }, 1);
@@ -78,7 +83,7 @@ ${limitClause}
     if (!title) title = 'my article at ' + dt.toISOString();
     if (!slug) slug = title;
     slug = makeArticleSlug(slug);
-    const change = updateRow({ slug, title, content, keywords, user });
+    const change = updateRow({ slug, title, content, tags, user });
     const { result, error: updateArticleError } = await this.db.update(_.TBL_ARTICLE, { id }, change, 1);
     if (!result || updateArticleError) throw updateArticleError;
 

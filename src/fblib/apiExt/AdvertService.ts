@@ -8,9 +8,15 @@ import { AssetService } from './AssetService';
 import { UserService } from './UserService';
 
 export class AdvertService {
-  constructor(private db: DbService, private assetService: AssetService, private userService: UserService) {}
+  constructor(
+    private db: DbService,
+    private assetService: AssetService,
+    private userService: UserService,
+  ) {
+    // do nothing
+  }
 
-  async advert_create({ user, input }: at.AdvertCreateInput): at.AdvertCreateOutput {
+  async advert_create({ user, input }: at.AdvertCreateInput): Promise<at.AdvertCreateOutput> {
     // TODO: validate input
     // eslint-disable-next-line prefer-const
     let { slug = '', title = '', content = '', tags = '', asset_id = null, is_buying = 0, is_service = 0 } = input;
@@ -39,7 +45,7 @@ export class AdvertService {
     return { data: result.success ? id : null, error };
   }
 
-  async advert_retrieve({ user, id, input }: at.AdvertRetrieveInput): at.AdvertRetrieveOutput {
+  async advert_retrieve({ user, id, input }: at.AdvertRetrieveInput): Promise<at.AdvertRetrieveOutput> {
     // TODO: validate uuid
     // TODO: analytics of 'views' per record per visitor per day
     const { with_assets = false, with_owner = true } = input;
@@ -56,7 +62,7 @@ export class AdvertService {
   }
 
   // use retrieve_advert(), it is faster
-  async advert_retrieve_by_username_and_slug({ user, input }: at.AdvertRetrieveInput): at.AdvertRetrieveOutput {
+  async advert_retrieve_by_username_and_slug({ user, input }: at.AdvertRetrieveInput): Promise<at.AdvertRetrieveOutput> {
     // eslint-disable-next-line prefer-const
     let { username = '', slug = '', with_assets = false } = input;
     username = username.toLowerCase();
@@ -72,7 +78,7 @@ export class AdvertService {
     return { data: row };
   }
 
-  async advert_update({ user, id, input }: at.AdvertUpdateInput): at.AdvertUpdateOutput {
+  async advert_update({ user, id, input }: at.AdvertUpdateInput): Promise<at.AdvertUpdateOutput> {
     // TODO: validate inputs
     // eslint-disable-next-line prefer-const
     let { slug, title, content, tags, is_buying = 0, is_service = 0 } = input;
@@ -91,7 +97,7 @@ export class AdvertService {
     return { data: result.success, error };
   }
 
-  async advert_delete({ user, id }: at.AdvertDeleteInput): at.AdvertDeleteOutput {
+  async advert_delete({ user, id }: at.AdvertDeleteInput): Promise<at.AdvertDeleteOutput> {
     const { data: found } = await this.advert_retrieve({ user, id });
     if (found.user_id !== user.id) throw new ErrForbidden(); // TODO: we can use found.created_by
 
@@ -100,7 +106,7 @@ export class AdvertService {
     return { data: result.success, error };
   }
 
-  async advert_search({ user, input }: at.AdvertSearchInput): at.AdvertSearchOutput {
+  async advert_search({ user, input }: at.AdvertSearchInput): Promise<at.AdvertSearchOutput> {
     let data = [], ph = '';
     // eslint-disable-next-line prefer-const
     let { user_id = null, username = null, q = '', tag = '', min_price = '-1', max_price = '-1', with_assets = false } = input;
@@ -162,7 +168,7 @@ ORDER BY a.created_at DESC
     return { data, meta };
   }
 
-  async advert_search_by_user({ user, input }: at.AdvertSearchInput): at.AdvertSearchOutput {
+  async advert_search_by_user({ user, input }: at.AdvertSearchInput): Promise<at.AdvertSearchOutput> {
     // keeping this function for convenience
     // search by user_id/username included in advert_search()
     return this.advert_search({ user, input });

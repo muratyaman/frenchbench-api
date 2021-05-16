@@ -16,10 +16,12 @@ export class UserService {
     private db: DbService,
     private securityMgr: SecurityService,
     private assetService: AssetService,
-  ) {}
+  ) {
+    // do nothing
+  }
 
   // TODO: captcha
-  async signup({ input }: at.SignUpInput): at.SignUpOutput {
+  async signup({ input }: at.SignUpInput): Promise<at.SignUpOutput> {
     let data = null, error = null;
     try {
       const { username = '', password = '', password_confirm = '' } = input;
@@ -51,7 +53,7 @@ export class UserService {
     return { data, error };
   }
 
-  async signin({ input }: at.SignInInput): at.SignInOutput {
+  async signin({ input }: at.SignInInput): Promise<at.SignInOutput> {
     let data = null, token = null, error = _.MSG_INVALID_CREDENTIALS;
 
     const { username = '', password = '' } = input;
@@ -71,12 +73,12 @@ export class UserService {
     return { data, error };
   }
 
-  async signout(): at.SignOutOutput {
+  async signout(): Promise<at.SignOutOutput> {
     return { data: { token: '' }, error: null }; // side-effect ==> invalid cookie on browser
   }
 
   // we can use user_retrieve
-  async user_retrieve_self({ user }: at.UserRetrieveInput): at.UserRetrieveOutput {
+  async user_retrieve_self({ user }: at.UserRetrieveInput): Promise<at.UserRetrieveOutput> {
     const { id = '' } = user ?? {};
     if (!id || id === '') throw new ErrBadRequest();
     const row = await this.db.findOneOrErr<dm.User>(_.TBL_USER, { id }, _.MSG_USER_NOT_FOUND);
@@ -84,11 +86,11 @@ export class UserService {
     return { data };
   }
 
-  async me({ user }: at.UserRetrieveInput): at.UserRetrieveOutput {
+  async me({ user }: at.UserRetrieveInput): Promise<at.UserRetrieveOutput> {
     return this.user_retrieve_self({ user });
   }
 
-  async user_retrieve({ id }: at.UserRetrieveInput): at.UserRetrieveOutput {
+  async user_retrieve({ id }: at.UserRetrieveInput): Promise<at.UserRetrieveOutput> {
     let data = null;
     // TODO: analytics of 'views' per record per visitor per day
     if (!id || id === '') throw new ErrBadRequest(_.MSG_ID_REQUIRED);
@@ -97,7 +99,7 @@ export class UserService {
     return { data };
   }
 
-  async user_retrieve_by_username({ input = { username: '' }}: at.UserRetrieveInput): at.UserRetrieveOutput {
+  async user_retrieve_by_username({ input = { username: '' }}: at.UserRetrieveInput): Promise<at.UserRetrieveOutput> {
     // TODO: analytics of 'views' per record per visitor per day
     const { username = '' } = input;
     if (!username || (username === '')) throw new ErrBadRequest(_.MSG_USERNAME_REQUIRED);
@@ -106,7 +108,7 @@ export class UserService {
     return { data };
   }
 
-  async usercontact_update({ user, id, input }) {
+  async usercontact_update({ user, id, input }: at.UserContactUpdateInput): Promise<at.UserContactUpdateOutput> {
     // permission is checked by _isProtected()
     // let { first_name, last_name, email, phone, headline, neighbourhood } = input;
     const change = updateRow({ ...input, user }); // TODO: limit inputs?
@@ -116,7 +118,7 @@ export class UserService {
     return { data: result.success, error };
   }
 
-  async usercontact_update_self({ user, input }) {
+  async usercontact_update_self({ user, input }: at.UserContactUpdateInput): Promise<at.UserContactUpdateOutput> {
     // permission is checked by _isProtected()
     // let { first_name, last_name, email, phone, headline, neighbourhood } = input;
     const change = updateRow({ ...input, user }); // TODO: limit inputs?
@@ -125,7 +127,7 @@ export class UserService {
     return { data: result.success, error };
   }
 
-  async usergeo_update({ user, id, input }) {
+  async usergeo_update({ user, id, input }: at.UserGeoUpdateInput): Promise<at.UserGeoUpdateOutput> {
     // permission is checked by _isProtected()
     const { lat = 0, lon = 0, geo_accuracy = 9999 } = input;
     const now = new Date();
@@ -136,7 +138,7 @@ export class UserService {
     return { data: result.success, error };
   }
 
-  async usergeo_update_self({ user, input }) {
+  async usergeo_update_self({ user, input }: at.UserGeoUpdateInput): Promise<at.UserGeoUpdateOutput> {
     // permission is checked by _isProtected()
     const { lat = 0, lon = 0, geo_accuracy = 9999 } = input;
     const now = new Date();
@@ -148,7 +150,7 @@ export class UserService {
 
   // TODO user_delete, close account
 
-  async user_search({ user, input }: at.UserSearchInput): at.UserSearchOutput {
+  async user_search({ user, input }: at.UserSearchInput): Promise<at.UserSearchOutput> {
     let data = [];
     // eslint-disable-next-line prefer-const
     let { lat1 = 0, lon1 = 0, lat2 = 0, lon2 = 0, with_assets = false } = input;

@@ -1,16 +1,19 @@
-import express from 'express';
+import express, { Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import { createServer } from 'http';
+import { createServer, Server } from 'http';
 import morgan from 'morgan';
 import responseTime from 'response-time';
 import { makeApiHandler } from './routes/api';
 import { makeApiUploadHandler } from './routes/api/upload';
 import { IFactory } from './factory';
 
-export type IHttpServer = ReturnType<typeof newHttpServer>;
+export interface IHttpServer {
+  httpServer: Server;
+  expressApp: Application;
+}
 
-export function newHttpServer(f: IFactory) {
+export function newHttpServer(f: IFactory): IHttpServer {
   const expressApp = express();
 
   expressApp.use(responseTime());

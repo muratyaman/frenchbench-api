@@ -8,7 +8,7 @@ generates:
     config:
       contextType: "../types#IContext"
       enumValues: "../enums"
-      defaultMapper: any
+      #defaultMapper: any
       showUnusedMappers: true
       mappers:
         User: "../mappers#UserMapper"

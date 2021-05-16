@@ -2,15 +2,21 @@ import * as _ from '../constants';
 import * as at from '../apiTypes';
 import * as dm from '../dbModels';
 import { DbService } from '../DbService';
-import { ErrForbidden, ErrNotFound } from '../errors';
+import { ErrForbidden } from '../errors';
 import { hash, log, makePostSlug, newRow, newUuid, updateRow } from '../utils';
 import { AssetService } from './AssetService';
 import { UserService } from './UserService';
 
 export class PostService {
-  constructor(private db: DbService, private assetService: AssetService, private userService: UserService) {}
+  constructor(
+    private db: DbService,
+    private assetService: AssetService,
+    private userService: UserService,
+  ) {
+    // do nothing
+  }
 
-  async post_create({ user, input }: at.PostCreateInput): at.PostCreateOutput {
+  async post_create({ user, input }: at.PostCreateInput): Promise<at.PostCreateOutput> {
     if (!user) throw new ErrForbidden();
 
     // eslint-disable-next-line prefer-const
@@ -36,7 +42,7 @@ export class PostService {
     return { data: result.success ? id : null, error };
   }
 
-  async post_retrieve({ user, id, input }: at.PostRetrieveInput): at.PostRetrieveOutput {
+  async post_retrieve({ user, id, input }: at.PostRetrieveInput): Promise<at.PostRetrieveOutput> {
     // TODO: validate uuid
     // TODO: analytics of 'views' per record per visitor per day
     const { with_assets = false, with_owner = true } = input;
@@ -53,7 +59,7 @@ export class PostService {
   }
 
   // use retrieve_post(), it is faster
-  async post_retrieve_by_username_and_slug({ user, input }: at.PostRetrieveInput): at.PostRetrieveOutput {
+  async post_retrieve_by_username_and_slug({ user, input }: at.PostRetrieveInput): Promise<at.PostRetrieveOutput> {
     // eslint-disable-next-line prefer-const
     let { username = '', slug = '', with_assets = false, with_owner = true } = input;
     username = username.toLowerCase();
@@ -71,7 +77,7 @@ export class PostService {
     return { data: row };
   }
 
-  async post_update({ user, id, input }: at.PostUpdateInput): at.PostUpdateOutput {
+  async post_update({ user, id, input }: at.PostUpdateInput): Promise<at.PostUpdateOutput> {
     // eslint-disable-next-line prefer-const
     let { slug, title, content, tags, lat = 0, lon = 0, geo_accuracy = 9999 } = input;
     const now = new Date();
@@ -87,7 +93,7 @@ export class PostService {
     return { data: result.success, error };
   }
 
-  async post_delete({ user, id }: at.PostDeleteInput): at.PostDeleteOutput {
+  async post_delete({ user, id }: at.PostDeleteInput): Promise<at.PostDeleteOutput> {
     // TODO: validate uuid
     // TODO: delete related records
     const { data: found } = await this.post_retrieve({ user, id });
@@ -97,7 +103,7 @@ export class PostService {
     return { data: result.success, error };
   }
 
-  async post_search({ user, input }: at.PostSearchInput): at.PostSearchOutput {
+  async post_search({ user, input }: at.PostSearchInput): Promise<at.PostSearchOutput> {
     let data: at.PostSummary[] = [], ph = '';
     // eslint-disable-next-line prefer-const
     let { user_id = null, username = null, q = '', tag = '', with_assets = false } = input;

@@ -12,8 +12,8 @@ coverage
 # don't lint tmp folder
 tmp
 
-# don't lint tmp folder
+# don't lint migrations folder
 migrations
 
-# don't lint tmp folder
+# don't lint seeds folder
 seeds
