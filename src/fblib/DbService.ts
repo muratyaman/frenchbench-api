@@ -85,10 +85,12 @@ export class DbService implements IDb {
     //log('db params', id, values);
     try {
       if (name) { // reusable prepared query
+        log('db query', text);
         const result1 = await this.pool.query({ text, values, name });
         const { command, rows = [], rowCount = 0 } = result1;
         result = { command, rowCount, success: 0 < rowCount, rows: (rows ?? []).map(r => r as TRow)};
       } else {
+        log('db query', text);
         const result2 = await this.pool.query(text, values);
         const { command, rows = [], rowCount = 0 } = result2;
         result = { command, rowCount, success: 0 < rowCount, rows: (rows ?? []).map(r => r as TRow)};
@@ -128,11 +130,11 @@ export class DbService implements IDb {
     let offsetClause = '', limitClause = '';
     if (0 < offset) { // no need when offset = 0
       params.push(offset);
-      offsetClause = ' OFFSET ' + this.ph(params.length);
+      offsetClause = 'OFFSET ' + this.ph(params.length);
     }
     if (0 < limit) {
       params.push(limit);
-      limitClause = ' LIMIT ' + this.ph(params.length);
+      limitClause = 'LIMIT ' + this.ph(params.length);
     }
     return { offsetClause, limitClause };
   }
@@ -203,9 +205,9 @@ export class DbService implements IDb {
     });
     const assignmentsStr = assignments.join(',');
     const whereStr = where ? ' WHERE ' + where.join(' AND ') : '';
-    params.push(limit);
-    const limitPh = this.ph(params.length);
-    const text = `UPDATE ${tableName} SET ${assignmentsStr} ${whereStr} LIMIT ${limitPh}`;
+    // params.push(limit);
+    // const limitPh = this.ph(params.length); // TODO check issue with LIMIT clause
+    const text = `UPDATE ${tableName} SET ${assignmentsStr} ${whereStr}`; // LIMIT ${limitPh}`;
     const name = tableName + '-u-' + hash(text);
     return this.query(text, params, name);
   }

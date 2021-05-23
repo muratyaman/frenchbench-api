@@ -37,7 +37,7 @@ type UserSummary {
   id: ID!
   username: String!
   email_verified: Boolean!
-  phone_verified: Boolean!
+  phone_mobile_verified: Boolean!
   
   lat: Float
   lon: Float
@@ -55,10 +55,17 @@ type User {
   last_name: String
   email: String
   email_verified: Boolean!
-  phone: String
-  phone_verified: Boolean!
+  phone_mobile: String
+  phone_mobile_verified: Boolean!
   headline: String
   neighbourhood: String
+
+  link_website: String
+  link_facebook: String
+  link_instagram: String
+  link_twitter: String
+  link_linkedin: String
+  link_youtube: String
   
   lat: Float
   lon: Float

@@ -11,6 +11,8 @@ import { AssetService } from './AssetService';
 
 export class UserService {
 
+  // API checks permission for each action
+
   constructor(
     private config: IConfig,
     private db: DbService,
@@ -109,7 +111,6 @@ export class UserService {
   }
 
   async usercontact_update({ user, id, input }: at.UserContactUpdateInput): Promise<at.UserContactUpdateOutput> {
-    // permission is checked by _isProtected()
     // let { first_name, last_name, email, phone, headline, neighbourhood } = input;
     const change = updateRow({ ...input, user }); // TODO: limit inputs?
     // for now, only user himself can update
@@ -119,16 +120,29 @@ export class UserService {
   }
 
   async usercontact_update_self({ user, input }: at.UserContactUpdateInput): Promise<at.UserContactUpdateOutput> {
-    // permission is checked by _isProtected()
     // let { first_name, last_name, email, phone, headline, neighbourhood } = input;
     const change = updateRow({ ...input, user }); // TODO: limit inputs?
+    const { result, error } = await this.db.update(_.TBL_USER, { id: user.id }, change, 1);
+    return { data: result.success, error };
+  }
+
+  async userlinks_update({ user, id, input }: at.UserLinksUpdateInput): Promise<at.UserLinksUpdateOutput> {
+    // let { link_website, link_facebook, link_instagram, link_twitter, link_linkedin, link_youtube } = input;
+    const change = updateRow({ ...input, user }); // TODO: limit inputs?
     // for now, only user himself can update
+    if (user.id !== id) throw new ErrForbidden();
+    const { result, error } = await this.db.update(_.TBL_USER, { id }, change, 1);
+    return { data: result.success, error };
+  }
+
+  async userlinks_update_self({ user, input }: at.UserLinksUpdateInput): Promise<at.UserLinksUpdateOutput> {
+    // let { link_website, link_facebook, link_instagram, link_twitter, link_linkedin, link_youtube } = input;
+    const change = updateRow({ ...input, user }); // TODO: limit inputs?
     const { result, error } = await this.db.update(_.TBL_USER, { id: user.id }, change, 1);
     return { data: result.success, error };
   }
 
   async usergeo_update({ user, id, input }: at.UserGeoUpdateInput): Promise<at.UserGeoUpdateOutput> {
-    // permission is checked by _isProtected()
     const { lat = 0, lon = 0, geo_accuracy = 9999 } = input;
     const now = new Date();
     const change = updateRow({ lat, lon, geo_accuracy, geo_updated_at: now, user });
@@ -139,11 +153,17 @@ export class UserService {
   }
 
   async usergeo_update_self({ user, input }: at.UserGeoUpdateInput): Promise<at.UserGeoUpdateOutput> {
-    // permission is checked by _isProtected()
     const { lat = 0, lon = 0, geo_accuracy = 9999 } = input;
     const now = new Date();
     const change = updateRow({ lat, lon, geo_accuracy, geo_updated_at: now, user });
     // TODO: for now, only user himself can update
+    const { result, error } = await this.db.update(_.TBL_USER, { id: user.id }, change, 1);
+    return { data: result.success, error };
+  }
+
+  async userfield_update_self({ user, input }: at.UserFieldUpdateInput): Promise<at.UserFieldUpdateOutput> {
+    const { field, value } = input; // TODO: restrict field to a list?
+    const change = updateRow({ [field]: value, user });
     const { result, error } = await this.db.update(_.TBL_USER, { id: user.id }, change, 1);
     return { data: result.success, error };
   }
@@ -205,8 +225,11 @@ WHERE (lat BETWEEN ${ph1} AND ${ph2})
       user_search: this,
       usercontact_update: this,
       usercontact_update_self: this,
+      userlinks_update: this,
+      userlinks_update_self: this,
       usergeo_update: this,
       usergeo_update_self: this,
+      userfield_update_self: this,
     };
   }
 }

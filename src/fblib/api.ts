@@ -13,7 +13,9 @@ export const actionsProtected = [
   'signout',
   'me', 'user_retrieve_self',
   'usercontact_update', 'usercontact_update_self',
+  'userlinks_update', 'userlinks_update_self',
   'usergeo_update', 'usergeo_update_self',
+  'userfield_update_self',
   'verify_email_start', 'verify_email_finish',
   'post_create', 'post_update', 'post_delete',
   'advert_create', 'advert_update', 'advert_delete',
@@ -24,11 +26,14 @@ export const actionsProtected = [
 export const actionsForUser = [
   'usergeo_update',
   'usercontact_update',
+  'userlinks_update',
 ];
 export const actionsForSelf = [
   'me', 'user_retrieve_self',
-  'usergeo_update_self',
   'usercontact_update_self',
+  'userlinks_update_self',
+  'usergeo_update_self',
+  'userfield_update_self',
 ];
 export const actionsForOwners = [
   'post_update', 'post_delete',

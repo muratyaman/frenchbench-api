@@ -3765,7 +3765,7 @@
             "deprecationReason": null
           },
           {
-            "name": "phone",
+            "name": "phone_mobile",
             "description": null,
             "args": [],
             "type": {
@@ -3777,7 +3777,7 @@
             "deprecationReason": null
           },
           {
-            "name": "phone_verified",
+            "name": "phone_mobile_verified",
             "description": null,
             "args": [],
             "type": {
@@ -3806,6 +3806,78 @@
           },
           {
             "name": "neighbourhood",
+            "description": null,
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "link_website",
+            "description": null,
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "link_facebook",
+            "description": null,
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "link_instagram",
+            "description": null,
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "link_twitter",
+            "description": null,
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "link_linkedin",
+            "description": null,
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
+          },
+          {
+            "name": "link_youtube",
             "description": null,
             "args": [],
             "type": {
@@ -4070,7 +4142,7 @@
             "deprecationReason": null
           },
           {
-            "name": "phone_verified",
+            "name": "phone_mobile_verified",
             "description": null,
             "args": [],
             "type": {

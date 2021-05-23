@@ -1,4 +1,4 @@
-import { TBL_USER, TBL_ADVERT } from '../src/lib/constants';
+import { TBL_USER, TBL_ADVERT } from '../build/fblib/constants';
 
 export const up = knex => {
   return knex.schema.createTable(TBL_ADVERT, (table) => {

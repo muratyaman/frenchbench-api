@@ -1,4 +1,4 @@
-import { TBL_USER } from '../src/lib/constants';
+import { TBL_USER } from '../build/fblib/constants';
 
 exports.up = function(knex) {
   return knex.schema.table(TBL_USER, (table) => {

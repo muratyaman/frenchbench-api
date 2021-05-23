@@ -1,4 +1,4 @@
-import { TBL_ARTICLE } from '../src/lib/constants';
+import { TBL_ARTICLE } from '../build/fblib/constants';
 
 export const up = knex => {
   return knex.schema.createTable(TBL_ARTICLE, (table) => {

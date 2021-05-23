@@ -1,4 +1,4 @@
-import { TBL_EMAIL_VERIF } from '../src/lib/constants';
+import { TBL_EMAIL_VERIF } from '../build/fblib/constants';
 
 export const up = knex => {
   return knex.schema.createTable(TBL_EMAIL_VERIF, (table) => {

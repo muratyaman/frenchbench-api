@@ -7,8 +7,15 @@ export interface HasAsset {
 export interface HasAssets {
   assets?: AssetRelation[];
 }
-
-export type User = ct.GeoLocation & ct.AuditFull & {
+export interface UserLinks {
+  link_website: string | null;
+  link_facebook: string | null;
+  link_instagram: string | null;
+  link_twitter: string | null;
+  link_linkedin: string | null;
+  link_youtube: string | null;
+}
+export type User = {
   id: string;
   username: string;
   password: string;
@@ -17,11 +24,11 @@ export type User = ct.GeoLocation & ct.AuditFull & {
   last_name: string;
   email: string | null;
   email_verified: number;
-  phone: string | null;
-  phone_verified: number;
+  phone_mobile: string | null;
+  phone_mobile_verified: number;
   headline: string | null;
   neighbourhood: string | null;
-};
+} & UserLinks & ct.GeoLocation & ct.AuditFull;
 
 export type UserPublic = Omit<User, 'password' & 'password_hash'>;
 

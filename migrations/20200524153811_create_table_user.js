@@ -1,4 +1,4 @@
-import { TBL_USER } from '../src/lib/constants';
+import { TBL_USER } from '../build/fblib/constants';
 
 export const up = knex => {
   return knex.schema.createTable(TBL_USER, (table) => {
@@ -9,7 +9,7 @@ export const up = knex => {
     table.string('first_name', 50).nullable();
     table.string('last_name', 50).nullable();
     table.string('email', 100).nullable();
-    table.string('phone', 20).nullable();
+    table.string('phone_mobile', 20).nullable();
     table.text('headline').nullable();
     table.string('neighbourhood', 50).nullable().index();
     table.float('lat').defaultTo(0);

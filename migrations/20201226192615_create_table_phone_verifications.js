@@ -1,4 +1,4 @@
-import { TBL_PHONE_VERIF } from '../src/lib/constants';
+import { TBL_PHONE_VERIF } from '../build/fblib/constants';
 
 export const up = knex => {
   return knex.schema.createTable(TBL_PHONE_VERIF, (table) => {

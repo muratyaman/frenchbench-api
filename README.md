@@ -38,3 +38,27 @@ Run test cases in `tests` using Mocha and Chai.
 ```
 npm run test
 ```
+
+## Database
+
+```
+# upgrade production/live
+npm run db:upgrade
+
+#npm run db:upgrade:staging
+
+#npm run db:upgrade:dev
+
+# downgrade production/live
+npm run db:rollback
+
+#npm run db:rollback:staging
+
+#npm run db:rollback:dev
+```
+
+Seeding test data:
+
+```
+npm run db:seed:dev
+```

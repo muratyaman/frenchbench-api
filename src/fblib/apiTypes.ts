@@ -116,16 +116,27 @@ export type SignOutOutput = ApiResult<SignOutData>;
 export type UserRetrieveInput  = ApiInput<{ id?: string; username?: string; } & HasFields>;
 export type UserRetrieveOutput = ApiResult<dm.UserPublic>;
 
-export type UserSummary = Pick<dm.UserPublic, 'id' | 'username' | 'email_verified' | 'phone_verified' | 'lat' | 'lon' | 'geo_accuracy' | 'created_at'>;
+export type UserSummary = Pick<dm.UserPublic, 'id' | 'username' | 'email_verified' | 'phone_mobile_verified' | 'lat' | 'lon' | 'geo_accuracy' | 'created_at'>;
 
 export type UserSearchInput = ApiInput<PageArgs & GeoFilter & AssetsFlag & HasFields>;
 export type UserSearchOutput = ApiResultList<UserSummary>;
 
-export type UserContactUpdateInput = ApiInput<Pick<dm.UserPublic, 'first_name' | 'last_name' | 'email' | 'phone' | 'headline' | 'neighbourhood'>>;
+export type UserContactDetails = Pick<dm.UserPublic, 'first_name' | 'last_name' | 'email' | 'phone_mobile' | 'headline' | 'neighbourhood'>;
+export type UserContactUpdateInput = ApiInput<UserContactDetails>;
 export type UserContactUpdateOutput = ApiResult<boolean>;
 
-export type UserGeoUpdateInput = ApiInput<Pick<dm.UserPublic, 'lat' | 'lon' | 'geo_accuracy'>>;
+export type UserLinksDetails = Pick<dm.UserPublic, 'link_website' | 'link_facebook' | 'link_instagram' | 'link_twitter' | 'link_linkedin' | 'link_youtube'>;
+export type UserLinksUpdateInput = ApiInput<UserLinksDetails>;
+export type UserLinksUpdateOutput = ApiResult<boolean>;
+
+export type UserGeoDetails = Pick<dm.UserPublic, 'lat' | 'lon' | 'geo_accuracy'>;
+export type UserGeoUpdateInput = ApiInput<UserGeoDetails>;
 export type UserGeoUpdateOutput = ApiResult<boolean>;
+
+export type TFieldUpdateInput<T> = ApiInput<{ field: keyof T; value: string; }>;
+
+export type UserFieldUpdateInput = TFieldUpdateInput<UserContactDetails & UserLinksDetails>;
+export type UserFieldUpdateOutput = ApiResult<boolean>;
 
 // POSTS * * *
 export type PostSummary = Summarize<dm.Post>;

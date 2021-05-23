@@ -1,4 +1,4 @@
-import { TBL_POST } from '../src/lib/constants';
+import { TBL_POST } from '../build/fblib/constants';
 
 exports.up = function(knex) {
   return knex.schema.table(TBL_POST, (table) => {
