@@ -193,7 +193,7 @@ export class UserService {
 
     const sqlUsers = `
 SELECT
-  id, username, email_verified, phone_verified, lat, lon, geo_accuracy, created_at
+  id, username, email_verified, phone_verified, is_volunteer, lat, lon, geo_accuracy, created_at
 FROM ${_.TBL_USER}
 WHERE (lat BETWEEN ${ph1} AND ${ph2})
   AND (lon BETWEEN ${ph3} AND ${ph4})

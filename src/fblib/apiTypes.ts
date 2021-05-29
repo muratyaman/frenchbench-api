@@ -116,7 +116,7 @@ export type SignOutOutput = ApiResult<SignOutData>;
 export type UserRetrieveInput  = ApiInput<{ id?: string; username?: string; } & HasFields>;
 export type UserRetrieveOutput = ApiResult<dm.UserPublic>;
 
-export type UserSummary = Pick<dm.UserPublic, 'id' | 'username' | 'email_verified' | 'phone_mobile_verified' | 'lat' | 'lon' | 'geo_accuracy' | 'created_at'>;
+export type UserSummary = Pick<dm.UserPublic, 'id' | 'username' | 'email_verified' | 'phone_mobile_verified' | 'is_volunteer' | 'lat' | 'lon' | 'geo_accuracy' | 'created_at'>;
 
 export type UserSearchInput = ApiInput<PageArgs & GeoFilter & AssetsFlag & HasFields>;
 export type UserSearchOutput = ApiResultList<UserSummary>;

@@ -28,6 +28,7 @@ export type User = {
   phone_mobile_verified: number;
   headline: string | null;
   neighbourhood: string | null;
+  is_volunteer: number;
 } & UserLinks & ct.GeoLocation & ct.AuditFull;
 
 export type UserPublic = Omit<User, 'password' & 'password_hash'>;
