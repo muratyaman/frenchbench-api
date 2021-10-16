@@ -1,4 +1,5 @@
-import { ApolloServer, gql } from 'apollo-server-express';
+import { ApolloServer } from 'apollo-server-express';
+import { makeExecutableSchema } from '@graphql-tools/schema';
 import fs from 'fs';
 import path from 'path';
 import * as codegen from './codegen';
@@ -10,21 +11,24 @@ import {
   EntityKindEnum, AssetMediaTypeEnum, AssetPurposeEnum, AssetTypeEnum,
 } from './fblib';
 
-export function newGqlServer(f: IFactory): ApolloServer {
+export async function newGqlServer(f: IFactory): Promise<ApolloServer> {
   const schemaFile = path.resolve(__dirname, '..', 'schema.gql');
   const schemaText = fs.readFileSync(schemaFile);
-  const typeDefs   = gql`${schemaText}`;
+  const typeDefs   = [`${schemaText}`];
   const resolvers  = makeResolvers(f);
 
+  const schema = makeExecutableSchema({ typeDefs, resolvers });
+
   const gqlServer = new ApolloServer({
-    typeDefs,
-    resolvers,
+    schema,
     context({ req }): IContext {
       const { user, error: tokenError } = f.securityMgr.getSessionUser(req);
       console.log('gql ctx', user, tokenError);
       return { f, user, tokenError };
     },
   });
+
+  await gqlServer.start();
 
   gqlServer.applyMiddleware({ app: f.expressApp, path: '/api/graphql' });
 

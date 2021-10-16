@@ -10,7 +10,6 @@ export function newConfig(penv: IProcessEnv): IConfig {
   const IS_PRODUCTION_MODE = NODE_ENV === 'production';
 
   return {
-    ...penv,
     IS_PRODUCTION_MODE,
 
     version: 'v1.0.0',
@@ -73,7 +72,7 @@ export function newConfig(penv: IProcessEnv): IConfig {
   };
 }
 
-export interface IProcessEnv {
+export interface IProcessEnv extends NodeJS.ProcessEnv {
   NODE_ENV?: string;
 
   LOG_FORMAT?: string;
@@ -111,7 +110,7 @@ export interface IProcessEnv {
   SMTP_EMAIL_FROM?: string;
 }
 
-export interface IConfig extends IProcessEnv {
+export interface IConfig {
   IS_PRODUCTION_MODE: boolean;
 
   version: string;
