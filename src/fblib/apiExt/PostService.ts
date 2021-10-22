@@ -64,10 +64,12 @@ export class PostService {
     let { username = '', slug = '', with_assets = false, with_owner = true } = input;
     username = username.toLowerCase();
     slug = slug.toLowerCase();
-    const { data: owner } = await this.userService.user_retrieve({ input: { username }}); // will throw err
+
+    const { data: owner } = await this.userService.user_retrieve_by_username({ input: { username }}); // will throw err
     
     const row = await this.db.findOneOrErr<dm.Post>(_.TBL_POST, { user_id: owner.id, slug }, _.MSG_POST_NOT_FOUND);
-    row['owner'] = owner;
+
+    if (with_owner) row['owner'] = owner;
     
     if (with_assets) {
       // with side effect on data

@@ -49,7 +49,9 @@ export class AdvertService {
     // TODO: validate uuid
     // TODO: analytics of 'views' per record per visitor per day
     const { with_assets = false, with_owner = true } = input;
+
     const row = await this.db.findOneOrErr<dm.Advert>(_.TBL_ADVERT, { id }, _.MSG_ADVERT_NOT_FOUND);
+
     if (with_assets) {
       // with side effect on data
       await this.assetService._find_attach_assets<dm.Advert>({ user, data: [ row ], parent_entity_kind: _.ENTITY_ASSET_PARENT_KIND.ADVERT });
@@ -64,12 +66,16 @@ export class AdvertService {
   // use retrieve_advert(), it is faster
   async advert_retrieve_by_username_and_slug({ user, input }: at.AdvertRetrieveInput): Promise<at.AdvertRetrieveOutput> {
     // eslint-disable-next-line prefer-const
-    let { username = '', slug = '', with_assets = false } = input;
+    let { username = '', slug = '', with_assets = false, with_owner = true } = input;
     username = username.toLowerCase();
     slug = slug.toLowerCase();
-    const { data: owner } = await this.userService.user_retrieve({ input: { username }}); // will throw err
+
+    const { data: owner } = await this.userService.user_retrieve_by_username({ input: { username }}); // will throw err
+
     const row = await this.db.findOneOrErr<dm.Advert>(_.TBL_ADVERT, { user_id: owner.id, slug }, _.MSG_ADVERT_NOT_FOUND);
-    row['owner'] = owner;
+
+    if (with_owner) row['owner'] = owner;
+
     if (with_assets) {
       // with side effect on data
       await this.assetService._find_attach_assets({ user, data: [ row ], parent_entity_kind: _.ENTITY_ASSET_PARENT_KIND.ADVERT });
